@@ -1,0 +1,98 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String     @id @default(uuid())
+  fullName     String
+  email        String     @unique
+  passwordHash String
+  phone        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  properties   Property[]
+}
+
+model Property {
+  id           String        @id @default(uuid())
+  userId       String
+  name         String
+  address      String
+  city         String
+  country      String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reservations Reservation[]
+}
+
+model Reservation {
+  id            String          @id @default(uuid())
+  propertyId    String
+  checkInDate   DateTime
+  checkOutDate  DateTime
+  status        String          @default("pending")
+  source        String          @default("direct")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  property      Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  guests        Guest[]
+  contracts     Contract[]
+  guestFormTokens GuestFormToken[]
+}
+
+model Guest {
+  id              String      @id @default(uuid())
+  reservationId   String
+  fullName        String
+  email           String
+  phone           String?
+  documentType    String?
+  documentNumber  String?
+  documentFileUrl String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  reservation     Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  signatures      Signature[]
+}
+
+model Contract {
+  id             String      @id @default(uuid())
+  reservationId  String
+  contractNumber String      @unique @default(uuid())
+  status         String      @default("draft")
+  pdfUrl         String?
+  signedAt       DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  reservation    Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  signatures     Signature[]
+}
+
+model Signature {
+  id                String   @id @default(uuid())
+  contractId        String
+  guestId           String
+  signatureImageUrl String
+  signedAt          DateTime @default(now())
+  contract          Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  guest             Guest    @relation(fields: [guestId], references: [id], onDelete: Cascade)
+}
+
+model GuestFormToken {
+  id            String      @id @default(uuid())
+  reservationId String
+  token         String      @unique @default(uuid())
+  expiresAt     DateTime
+  used          Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+}
