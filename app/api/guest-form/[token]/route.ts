@@ -1,15 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getGuestFormByToken, submitGuestForm } from "@/lib/services/guest.service";
+import { getGuestFormByToken, submitMultipleGuests } from "@/lib/services/guest.service";
 import { generateContract } from "@/lib/services/contract.service";
 
-const submitSchema = z.object({
+const mainGuestSchema = z.object({
   fullName: z.string().min(2),
-  email: z.string().email(),
+  email: z.string().email(),           // required for main guest
+  phone: z.string().min(1),            // required for main guest
+  documentType: z.enum(["passport", "id_card", "driving_license"]).optional(),
+  documentNumber: z.string().min(1).optional(),
+  documentFileUrl: z.string().url().optional(),
+});
+
+const additionalGuestSchema = z.object({
+  fullName: z.string().min(2),
+  email: z.string().email().optional(), // optional for additional guests
   phone: z.string().optional(),
   documentType: z.enum(["passport", "id_card", "driving_license"]).optional(),
-  documentNumber: z.string().optional(),
+  documentNumber: z.string().min(1).optional(),
   documentFileUrl: z.string().url().optional(),
+});
+
+const submitSchema = z.object({
+  guests: z
+    .array(additionalGuestSchema)
+    .min(1)
+    .superRefine((guests, ctx) => {
+      const main = mainGuestSchema.safeParse(guests[0]);
+      if (!main.success) {
+        main.error.issues.forEach((issue) =>
+          ctx.addIssue({ ...issue, path: [0, ...(issue.path ?? [])] })
+        );
+      }
+    }),
 });
 
 export async function GET(
@@ -47,23 +70,20 @@ export async function POST(
   }
 
   try {
-    // 1. Save guest info and mark token as used
-    const guest = await submitGuestForm({ token, ...parsed.data });
+    const guests = await submitMultipleGuests({ token, guests: parsed.data.guests });
+    const mainGuest = guests[0];
 
-    // 2. Auto-generate the contract PDF so the guest can sign immediately
     let contractId: string | null = null;
     try {
-      const contract = await generateContract(guest.reservationId);
+      const contract = await generateContract(mainGuest.reservationId);
       contractId = contract.id;
-    } catch (contractErr) {
-      // Log but don't fail the whole request — guest data is saved
-      console.error("[auto-generate contract]:", contractErr);
+    } catch (err) {
+      console.error("[auto-generate contract]:", err);
     }
 
-    return NextResponse.json({ ...guest, contractId }, { status: 201 });
+    return NextResponse.json({ id: mainGuest.id, contractId }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    const status = message.includes("not found") ? 404 : 400;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }

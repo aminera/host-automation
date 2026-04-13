@@ -128,3 +128,54 @@
     @apply font-sans;
   }
 }
+
+/* ── Navbar sign-out hover ── */
+.navbar-signout        { color: var(--app-text-3); }
+.navbar-signout:hover  { color: var(--app-text-1); }
+
+/* ── Reservations table row hover ── */
+.res-table-row:hover td { background: var(--app-surface-2) !important; }
+
+/* ── Reservations mobile card hover ── */
+.res-mobile-card:hover { background: var(--app-surface-2) !important; }
+
+/* ── App design-system tokens ── */
+:root {
+  --app-bg:           #efede8;
+  --app-surface:      #ffffff;
+  --app-surface-2:    #f5f5f3;
+  --app-border:       rgba(0, 0, 0, 0.1);
+  --app-border-md:    rgba(0, 0, 0, 0.15);
+  --app-text-1:       #1a1a18;
+  --app-text-2:       #6b6b67;
+  --app-text-3:       #9b9b96;
+  --app-blue:         #185FA5;
+  --app-blue-bg:      #E6F1FB;
+  --app-blue-text:    #0C447C;
+  --app-green-bg:     #EAF3DE;
+  --app-green-text:   #3B6D11;
+  --app-amber-bg:     #FAEEDA;
+  --app-amber-text:   #854F0B;
+  --app-red-text:     #A32D2D;
+  --app-red-bg:       #FCEBEB;
+}
+
+.dark {
+  --app-bg:           #0a0a0a;
+  --app-surface:      #141414;
+  --app-surface-2:    #1e1e1e;
+  --app-border:       rgba(255, 255, 255, 0.08);
+  --app-border-md:    rgba(255, 255, 255, 0.12);
+  --app-text-1:       #f0f0ee;
+  --app-text-2:       #a0a09b;
+  --app-text-3:       #6b6b67;
+  --app-blue:         #4A9FE0;
+  --app-blue-bg:      rgba(74, 159, 224, 0.15);
+  --app-blue-text:    #7ec0f0;
+  --app-green-bg:     rgba(59, 109, 17, 0.2);
+  --app-green-text:   #8fc95a;
+  --app-amber-bg:     rgba(133, 79, 11, 0.2);
+  --app-amber-text:   #e0a050;
+  --app-red-text:     #e06060;
+  --app-red-bg:       rgba(163, 45, 45, 0.15);
+}

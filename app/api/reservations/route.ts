@@ -32,11 +32,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const reservation = await createReservation({
-    ...parsed.data,
-    checkInDate: new Date(parsed.data.checkInDate),
-    checkOutDate: new Date(parsed.data.checkOutDate),
-  });
-
-  return NextResponse.json(reservation, { status: 201 });
+  try {
+    const reservation = await createReservation({
+      ...parsed.data,
+      checkInDate: new Date(parsed.data.checkInDate),
+      checkOutDate: new Date(parsed.data.checkOutDate),
+    });
+    return NextResponse.json(reservation, { status: 201 });
+  } catch (err) {
+    if (err instanceof Error && err.message === "DATE_CONFLICT") {
+      return NextResponse.json(
+        { error: "These dates overlap with an existing reservation for this property." },
+        { status: 409 }
+      );
+    }
+    throw err;
+  }
 }

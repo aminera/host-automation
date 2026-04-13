@@ -181,7 +181,7 @@ export type GuestGroupByOutputType = {
   id: string
   reservationId: string
   fullName: string
-  email: string
+  email: string | null
   phone: string | null
   documentType: string | null
   documentNumber: string | null
@@ -215,7 +215,7 @@ export type GuestWhereInput = {
   id?: Prisma.StringFilter<"Guest"> | string
   reservationId?: Prisma.StringFilter<"Guest"> | string
   fullName?: Prisma.StringFilter<"Guest"> | string
-  email?: Prisma.StringFilter<"Guest"> | string
+  email?: Prisma.StringNullableFilter<"Guest"> | string | null
   phone?: Prisma.StringNullableFilter<"Guest"> | string | null
   documentType?: Prisma.StringNullableFilter<"Guest"> | string | null
   documentNumber?: Prisma.StringNullableFilter<"Guest"> | string | null
@@ -230,7 +230,7 @@ export type GuestOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   reservationId?: Prisma.SortOrder
   fullName?: Prisma.SortOrder
-  email?: Prisma.SortOrder
+  email?: Prisma.SortOrderInput | Prisma.SortOrder
   phone?: Prisma.SortOrderInput | Prisma.SortOrder
   documentType?: Prisma.SortOrderInput | Prisma.SortOrder
   documentNumber?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -248,7 +248,7 @@ export type GuestWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.GuestWhereInput | Prisma.GuestWhereInput[]
   reservationId?: Prisma.StringFilter<"Guest"> | string
   fullName?: Prisma.StringFilter<"Guest"> | string
-  email?: Prisma.StringFilter<"Guest"> | string
+  email?: Prisma.StringNullableFilter<"Guest"> | string | null
   phone?: Prisma.StringNullableFilter<"Guest"> | string | null
   documentType?: Prisma.StringNullableFilter<"Guest"> | string | null
   documentNumber?: Prisma.StringNullableFilter<"Guest"> | string | null
@@ -263,7 +263,7 @@ export type GuestOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   reservationId?: Prisma.SortOrder
   fullName?: Prisma.SortOrder
-  email?: Prisma.SortOrder
+  email?: Prisma.SortOrderInput | Prisma.SortOrder
   phone?: Prisma.SortOrderInput | Prisma.SortOrder
   documentType?: Prisma.SortOrderInput | Prisma.SortOrder
   documentNumber?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -282,7 +282,7 @@ export type GuestScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"Guest"> | string
   reservationId?: Prisma.StringWithAggregatesFilter<"Guest"> | string
   fullName?: Prisma.StringWithAggregatesFilter<"Guest"> | string
-  email?: Prisma.StringWithAggregatesFilter<"Guest"> | string
+  email?: Prisma.StringNullableWithAggregatesFilter<"Guest"> | string | null
   phone?: Prisma.StringNullableWithAggregatesFilter<"Guest"> | string | null
   documentType?: Prisma.StringNullableWithAggregatesFilter<"Guest"> | string | null
   documentNumber?: Prisma.StringNullableWithAggregatesFilter<"Guest"> | string | null
@@ -294,7 +294,7 @@ export type GuestScalarWhereWithAggregatesInput = {
 export type GuestCreateInput = {
   id?: string
   fullName: string
-  email: string
+  email?: string | null
   phone?: string | null
   documentType?: string | null
   documentNumber?: string | null
@@ -309,7 +309,7 @@ export type GuestUncheckedCreateInput = {
   id?: string
   reservationId: string
   fullName: string
-  email: string
+  email?: string | null
   phone?: string | null
   documentType?: string | null
   documentNumber?: string | null
@@ -322,7 +322,7 @@ export type GuestUncheckedCreateInput = {
 export type GuestUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   documentType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   documentNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -337,7 +337,7 @@ export type GuestUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   reservationId?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   documentType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   documentNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -351,7 +351,7 @@ export type GuestCreateManyInput = {
   id?: string
   reservationId: string
   fullName: string
-  email: string
+  email?: string | null
   phone?: string | null
   documentType?: string | null
   documentNumber?: string | null
@@ -363,7 +363,7 @@ export type GuestCreateManyInput = {
 export type GuestUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   documentType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   documentNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -376,7 +376,7 @@ export type GuestUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   reservationId?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   documentType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   documentNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -498,7 +498,7 @@ export type GuestUpdateOneRequiredWithoutSignaturesNestedInput = {
 export type GuestCreateWithoutReservationInput = {
   id?: string
   fullName: string
-  email: string
+  email?: string | null
   phone?: string | null
   documentType?: string | null
   documentNumber?: string | null
@@ -511,7 +511,7 @@ export type GuestCreateWithoutReservationInput = {
 export type GuestUncheckedCreateWithoutReservationInput = {
   id?: string
   fullName: string
-  email: string
+  email?: string | null
   phone?: string | null
   documentType?: string | null
   documentNumber?: string | null
@@ -554,7 +554,7 @@ export type GuestScalarWhereInput = {
   id?: Prisma.StringFilter<"Guest"> | string
   reservationId?: Prisma.StringFilter<"Guest"> | string
   fullName?: Prisma.StringFilter<"Guest"> | string
-  email?: Prisma.StringFilter<"Guest"> | string
+  email?: Prisma.StringNullableFilter<"Guest"> | string | null
   phone?: Prisma.StringNullableFilter<"Guest"> | string | null
   documentType?: Prisma.StringNullableFilter<"Guest"> | string | null
   documentNumber?: Prisma.StringNullableFilter<"Guest"> | string | null
@@ -566,7 +566,7 @@ export type GuestScalarWhereInput = {
 export type GuestCreateWithoutSignaturesInput = {
   id?: string
   fullName: string
-  email: string
+  email?: string | null
   phone?: string | null
   documentType?: string | null
   documentNumber?: string | null
@@ -580,7 +580,7 @@ export type GuestUncheckedCreateWithoutSignaturesInput = {
   id?: string
   reservationId: string
   fullName: string
-  email: string
+  email?: string | null
   phone?: string | null
   documentType?: string | null
   documentNumber?: string | null
@@ -608,7 +608,7 @@ export type GuestUpdateToOneWithWhereWithoutSignaturesInput = {
 export type GuestUpdateWithoutSignaturesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   documentType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   documentNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -622,7 +622,7 @@ export type GuestUncheckedUpdateWithoutSignaturesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   reservationId?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   documentType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   documentNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -634,7 +634,7 @@ export type GuestUncheckedUpdateWithoutSignaturesInput = {
 export type GuestCreateManyReservationInput = {
   id?: string
   fullName: string
-  email: string
+  email?: string | null
   phone?: string | null
   documentType?: string | null
   documentNumber?: string | null
@@ -646,7 +646,7 @@ export type GuestCreateManyReservationInput = {
 export type GuestUpdateWithoutReservationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   documentType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   documentNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -659,7 +659,7 @@ export type GuestUpdateWithoutReservationInput = {
 export type GuestUncheckedUpdateWithoutReservationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   documentType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   documentNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -672,7 +672,7 @@ export type GuestUncheckedUpdateWithoutReservationInput = {
 export type GuestUncheckedUpdateManyWithoutReservationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fullName?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   documentType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   documentNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -792,7 +792,7 @@ export type $GuestPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     id: string
     reservationId: string
     fullName: string
-    email: string
+    email: string | null
     phone: string | null
     documentType: string | null
     documentNumber: string | null

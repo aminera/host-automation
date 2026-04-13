@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import SignatureCanvas from "react-signature-canvas";
 
 export default function SignPage() {
-  useParams<{ token: string }>();
+  const { token } = useParams<{ token: string }>();
   const searchParams = useSearchParams();
   const contractId = searchParams.get("contractId");
   const guestId = searchParams.get("guestId");
@@ -38,7 +38,7 @@ export default function SignPage() {
     const res = await fetch("/api/contracts/sign", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contractId, guestId, signatureDataUrl }),
+      body: JSON.stringify({ token, contractId, guestId, signatureDataUrl }),
     });
 
     const data = await res.json();

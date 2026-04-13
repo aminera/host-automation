@@ -13,8 +13,16 @@ export async function POST(
   }
 
   const { id } = await params;
-  const tokenRecord = await generateGuestFormToken(id);
 
-  const link = `${process.env.NEXTAUTH_URL}/guest-form/${tokenRecord.token}`;
-  return NextResponse.json({ token: tokenRecord.token, link, expiresAt: tokenRecord.expiresAt });
+  try {
+    const tokenRecord = await generateGuestFormToken(id, session.user.id);
+    const link = `${process.env.NEXTAUTH_URL}/guest-form/${tokenRecord.token}`;
+
+    return NextResponse.json({ token: tokenRecord.token, link, expiresAt: tokenRecord.expiresAt });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to generate token";
+    const status = message === "Reservation not found" ? 404 : 400;
+
+    return NextResponse.json({ error: message }, { status });
+  }
 }

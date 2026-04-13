@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { uploadToCloudinary } from "@/lib/utils/cloudinary";
 import { signContract } from "@/lib/services/contract.service";
+import { validateGuestSigningAccess } from "@/lib/services/guest.service";
 
 const schema = z.object({
+  token: z.string().min(1),
   contractId: z.string().uuid(),
   guestId: z.string().uuid(),
   // base64 data URI of the signature image: data:image/png;base64,...
@@ -17,9 +19,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { contractId, guestId, signatureDataUrl } = parsed.data;
+  const { token, contractId, guestId, signatureDataUrl } = parsed.data;
 
   try {
+    await validateGuestSigningAccess({ token, contractId, guestId });
+
     const signatureImageUrl = await uploadToCloudinary(
       signatureDataUrl,
       "signatures",
