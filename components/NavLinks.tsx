@@ -24,6 +24,7 @@ const links = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/reservations", label: "Reservations", match: "/reservations" },
   { href: "/contracts", label: "Contracts", match: "/contracts" },
+  { href: "/settings", label: "Settings", match: "/settings" },
 ];
 
 export default function NavLinks() {

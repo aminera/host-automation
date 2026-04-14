@@ -12,7 +12,7 @@ export const TEMPLATE_VARIABLES: { key: string; label: string }[] = [
   { key: "guest_email",        label: "Guest email" },
   { key: "guest_phone_row",    label: "Phone row (hidden if empty)" },
   { key: "document_type_row",  label: "Document type row (hidden if empty)" },
-  { key: "document_number_row",label: "Document number row (hidden if empty)" },
+  { key: "ID_number_row",label: "ID number (hidden if empty)" },
   { key: "signature_block",    label: "Signature image or blank line" },
 ];
 
@@ -66,7 +66,7 @@ export const DEFAULT_TEMPLATE_HTML = `<!DOCTYPE html>
     <div class="row"><span class="label">Email:</span><span class="value">{{guest_email}}</span></div>
     {{guest_phone_row}}
     {{document_type_row}}
-    {{document_number_row}}
+    {{ID_number_row}}
   </div>
 
   <div class="section">
@@ -127,17 +127,17 @@ export function renderTemplate(html: string, data: ContractRenderData): string {
     guest_name:          data.guestName,
     guest_email:         data.guestEmail,
     guest_phone_row:     data.guestPhone
-      ? `<div class="row"><span class="label">Phone:</span><span class="value">${data.guestPhone}</span></div>`
+      ? `<span class="value">${data.guestPhone}</span>`
       : "",
     document_type_row:   data.documentType
-      ? `<div class="row"><span class="label">Document Type:</span><span class="value">${data.documentType}</span></div>`
+      ? `<span class="value">${data.documentType}</span>`
       : "",
-    document_number_row: data.documentNumber
-      ? `<div class="row"><span class="label">Document Number:</span><span class="value">${data.documentNumber}</span></div>`
+    ID_number_row: data.documentNumber
+      ? `<span class="value">${data.documentNumber}</span>`
       : "",
     signature_block:     data.signatureImageUrl
-      ? `<img src="${data.signatureImageUrl}" style="max-height:80px;max-width:100%;display:block;margin-bottom:4px;"/>`
-      : `<div class="sig-line"></div>`,
+      ? `<img src="${data.signatureImageUrl}" style="max-height:80px;max-width:100%;display:inline-block;"/>`
+      : `<div ></div>`,
   };
 
   return html.replace(/\{\{(\w+)\}\}/g, (_, key: string) => vars[key] ?? "");

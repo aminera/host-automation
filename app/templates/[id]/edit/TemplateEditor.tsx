@@ -1,10 +1,14 @@
 "use client";
 
-import { useRef, useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styled, { keyframes } from "styled-components";
-import { TEMPLATE_VARIABLES } from "@/lib/utils/contract-template";
+import dynamic from "next/dynamic";
+import { htmlToTiptap, tiptapToHtml } from "@/components/editor/VariableNode";
+
+// RichEditor uses browser-only APIs — load it client-side only
+const RichEditor = dynamic(() => import("@/components/editor/RichEditor"), { ssr: false });
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -15,9 +19,9 @@ type Props = {
   initialIsDefault: boolean;
 };
 
-type Tab = "html" | "preview" | "upload";
+type Tab = "editor" | "preview" | "upload";
 
-// ── Sample data for the live preview ─────────────────────────────────────────
+// ── Sample data for preview ───────────────────────────────────────────────────
 
 const SAMPLE: Record<string, string> = {
   contract_number:     "CTR-PREVIEW-001",
@@ -29,14 +33,29 @@ const SAMPLE: Record<string, string> = {
   check_out:           "29 Apr 2026",
   guest_name:          "Jane Guest",
   guest_email:         "jane.guest@example.com",
-  guest_phone_row:     `<div class="row"><span class="label">Phone:</span><span class="value">+34 600 123 456</span></div>`,
-  document_type_row:   `<div class="row"><span class="label">Document Type:</span><span class="value">Passport</span></div>`,
-  document_number_row: `<div class="row"><span class="label">Document Number:</span><span class="value">AB123456</span></div>`,
-  signature_block:     `<div class="sig-line"></div>`,
+  guest_phone_row:     `<tr><td>+34 600 123 456</td></tr>`,
+  document_type_row:   `<tr><td>Passport</td></tr>`,
+  ID_number_row:        `<tr><td>AB123456</td></tr>`,
+  signature_block:     `<span>Signature</span>`,
 };
 
 function quickRender(html: string): string {
-  return html.replace(/\{\{(\w+)\}\}/g, (_, k: string) => SAMPLE[k] ?? `{{${k}}}`);
+  const wrapped = `
+    <html><head><style>
+      * { box-sizing: border-box; }
+      body { font-family: Arial, sans-serif; color: #222; padding: 40px; max-width: 760px; margin: 0 auto; font-size: 14px; line-height: 1.7; }
+      h1 { text-align: center; font-size: 22px; font-weight: 700; margin: 0 0 12px; }
+      h2 { font-size: 17px; font-weight: 600; margin: 20px 0 8px; }
+      h3 { font-size: 14px; font-weight: 600; margin: 16px 0 6px; }
+      p  { margin: 0; min-height: 1.7em; line-height: 1.7; }
+      p + p { margin-top: 2px; }
+      ul,ol { padding-left: 22px; margin: 0 0 12px; }
+      li { margin-bottom: 4px; }
+      strong { font-weight: 600; } em { font-style: italic; } u { text-decoration: underline; }
+      table { width: 100%; border-collapse: collapse; }
+      td, th { vertical-align: top; }
+    </style></head><body>${html}</body></html>`;
+  return wrapped.replace(/\{\{(\w+)\}\}/g, (_, k: string) => SAMPLE[k] ?? `<mark>{{${k}}}</mark>`);
 }
 
 // ── Styled components ─────────────────────────────────────────────────────────
@@ -92,7 +111,7 @@ const ErrorDismiss = styled.button`
 
 const TwoColGrid = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 270px;
+  grid-template-columns: minmax(0, 1fr) 260px;
   gap: 24px;
   align-items: start;
 `;
@@ -135,18 +154,9 @@ const TabBtn = styled.button<{ $active: boolean }>`
   border-radius: 6px 6px 0 0;
   border: none;
   cursor: pointer;
-  transition: opacity 0.15s;
-  text-transform: capitalize;
   background: ${(p) => p.$active ? "var(--app-surface)" : "transparent"};
   color: ${(p) => p.$active ? "var(--app-text-1)" : "var(--app-text-3)"};
   border-bottom: ${(p) => p.$active ? "2px solid var(--app-blue)" : "2px solid transparent"};
-`;
-
-const TabCharCount = styled.span`
-  margin-left: auto;
-  font-size: 11px;
-  padding-right: 4px;
-  color: var(--app-text-3);
 `;
 
 const TabPanel = styled.div`
@@ -154,23 +164,6 @@ const TabPanel = styled.div`
   border-top: none;
   border-radius: 0 0 12px 12px;
   overflow: hidden;
-`;
-
-const HtmlTextarea = styled.textarea`
-  display: block;
-  resize: none;
-  padding: 16px;
-  font-size: 12px;
-  line-height: 1.625;
-  outline: none;
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 560px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  background: var(--app-surface);
-  color: var(--app-text-1);
-  tab-size: 2;
-  border: none;
 `;
 
 const PreviewInfoBar = styled.div`
@@ -305,7 +298,6 @@ const UseContentBtn = styled.button`
   color: #ffffff;
   border: none;
   cursor: pointer;
-  transition: opacity 0.15s;
 `;
 
 const DiscardBtn = styled.button`
@@ -362,7 +354,6 @@ const FormatNote = styled.p`
   color: var(--app-text-3);
 `;
 
-// Sidebar
 const Sidebar = styled.div`
   position: sticky;
   top: 24px;
@@ -387,12 +378,6 @@ const SidebarSectionLabel = styled.p`
   color: var(--app-text-3);
 `;
 
-const SidebarSubLabel = styled.p`
-  font-size: 11px;
-  margin-bottom: 12px;
-  color: var(--app-text-2);
-`;
-
 const DefaultCheckLabel = styled.label`
   display: flex;
   align-items: flex-start;
@@ -415,43 +400,6 @@ const DefaultCheckTitle = styled.p`
 const DefaultCheckNote = styled.p`
   font-size: 11px;
   margin-top: 2px;
-  color: var(--app-text-3);
-`;
-
-const VarList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const VarBtn = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 6px;
-  text-align: left;
-  cursor: pointer;
-  background: var(--app-surface-2);
-  border: 0.5px solid var(--app-border);
-  transition: opacity 0.15s;
-  &:hover { opacity: 0.8; }
-`;
-
-const VarKey = styled.span`
-  font-size: 11px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  flex-shrink: 0;
-  color: var(--app-blue);
-`;
-
-const VarLabel = styled.span`
-  font-size: 10px;
-  text-align: right;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   color: var(--app-text-3);
 `;
 
@@ -502,6 +450,12 @@ const DeleteTemplateBtn = styled.button`
   &:disabled { opacity: 0.6; cursor: not-allowed; }
 `;
 
+const HelpNote = styled.p`
+  font-size: 11px;
+  color: var(--app-text-3);
+  line-height: 1.5;
+`;
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function TemplateEditor({
@@ -511,13 +465,15 @@ export default function TemplateEditor({
   initialIsDefault,
 }: Props) {
   const router  = useRouter();
-  const areaRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [name,       setName]       = useState(initialName);
-  const [html,       setHtml]       = useState(initialHtml);
+  // editorHtml holds TipTap's output HTML (with <span data-variable> chips)
+  const [editorHtml, setEditorHtml] = useState(() => htmlToTiptap(initialHtml));
+  // editorKey forces TipTap to remount when content is replaced via import
+  const [editorKey,  setEditorKey]  = useState(0);
   const [isDefault,  setIsDefault]  = useState(initialIsDefault);
-  const [tab,        setTab]        = useState<Tab>("html");
+  const [tab,        setTab]        = useState<Tab>("editor");
   const [saving,     setSaving]     = useState(false);
   const [deleting,   setDeleting]   = useState(false);
   const [previewing, setPreviewing] = useState(false);
@@ -529,20 +485,13 @@ export default function TemplateEditor({
   const [importError, setImportError] = useState<string | null>(null);
   const [dragging,    setDragging]    = useState(false);
 
-  const previewSrcDoc = useMemo(() => quickRender(html), [html]);
+  // Preview: convert TipTap chips back to {{key}} then render with sample data
+  const previewSrcDoc = useMemo(
+    () => quickRender(tiptapToHtml(editorHtml)),
+    [editorHtml],
+  );
 
-  function insertVariable(key: string) {
-    const area = areaRef.current;
-    if (!area) return;
-    const start = area.selectionStart;
-    const end   = area.selectionEnd;
-    const token = `{{${key}}}`;
-    setHtml(html.slice(0, start) + token + html.slice(end));
-    requestAnimationFrame(() => {
-      area.focus();
-      area.setSelectionRange(start + token.length, start + token.length);
-    });
-  }
+  // ── Save ──────────────────────────────────────────────────────────────────
 
   async function handleSave() {
     if (!name.trim()) { setError("Template name is required."); return; }
@@ -550,12 +499,13 @@ export default function TemplateEditor({
     setSaving(true);
     try {
       const isNew = templateId === null;
-      const res   = await fetch(
+      const storable = tiptapToHtml(editorHtml); // chips → {{key}}
+      const res = await fetch(
         isNew ? "/api/templates" : `/api/templates/${templateId}`,
         {
           method:  isNew ? "POST" : "PUT",
           headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ name, html, isDefault }),
+          body:    JSON.stringify({ name, html: storable, isDefault }),
         }
       );
       if (!res.ok) throw new Error((await res.json()).error ?? "Save failed");
@@ -570,6 +520,8 @@ export default function TemplateEditor({
     }
   }
 
+  // ── Preview PDF ───────────────────────────────────────────────────────────
+
   async function handlePreviewPdf() {
     setPreviewing(true);
     try {
@@ -577,7 +529,7 @@ export default function TemplateEditor({
       const res = await fetch(`/api/templates/${id}/preview`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ html }),
+        body:    JSON.stringify({ html: tiptapToHtml(editorHtml) }),
       });
       if (!res.ok) throw new Error("Preview generation failed");
       window.open(URL.createObjectURL(await res.blob()), "_blank");
@@ -587,6 +539,8 @@ export default function TemplateEditor({
       setPreviewing(false);
     }
   }
+
+  // ── Delete ────────────────────────────────────────────────────────────────
 
   async function handleDelete() {
     if (!templateId || !confirm("Delete this template? This cannot be undone.")) return;
@@ -601,16 +555,16 @@ export default function TemplateEditor({
     }
   }
 
+  // ── Import .docx ──────────────────────────────────────────────────────────
+
   async function handleImportFile(file: File) {
     setImportError(null);
     setImportHtml(null);
-
     const ext = file.name.split(".").pop()?.toLowerCase();
     if (ext !== "docx") {
-      setImportError("Only .docx files are supported. Please export your contract to Word format first.");
+      setImportError("Only .docx files are supported.");
       return;
     }
-
     setImporting(true);
     try {
       const arrayBuffer = await file.arrayBuffer();
@@ -626,9 +580,11 @@ export default function TemplateEditor({
 
   function applyImport() {
     if (!importHtml) return;
-    setHtml(importHtml);
+    // Load into editor — htmlToTiptap handles any {{key}} in imported HTML
+    setEditorHtml(htmlToTiptap(importHtml));
+    setEditorKey((k) => k + 1); // remount RichEditor with new content
     setImportHtml(null);
-    setTab("html");
+    setTab("editor");
   }
 
   function onDrop(e: React.DragEvent) {
@@ -663,7 +619,6 @@ export default function TemplateEditor({
         {/* ── Left: editor ─────────────────────────────────────────────── */}
         <LeftCol>
 
-          {/* Template name */}
           <NameInput
             type="text"
             value={name}
@@ -671,26 +626,19 @@ export default function TemplateEditor({
             placeholder="Template name"
           />
 
-          {/* Tab bar */}
           <TabBar>
-            {(["html", "preview", "upload"] as Tab[]).map((t) => (
-              <TabBtn key={t} $active={tab === t} onClick={() => setTab(t)}>
-                {t === "html" ? "HTML" : t === "preview" ? "Live preview" : "Import file"}
-              </TabBtn>
-            ))}
-            <TabCharCount>{html.length.toLocaleString()} chars</TabCharCount>
+            <TabBtn $active={tab === "editor"}  onClick={() => setTab("editor")}>Write</TabBtn>
+            <TabBtn $active={tab === "preview"} onClick={() => setTab("preview")}>Preview</TabBtn>
+            <TabBtn $active={tab === "upload"}  onClick={() => setTab("upload")}>Import .docx</TabBtn>
           </TabBar>
 
-          {/* ── HTML tab ── */}
-          {tab === "html" && (
-            <TabPanel>
-              <HtmlTextarea
-                ref={areaRef}
-                value={html}
-                onChange={(e) => setHtml(e.target.value)}
-                spellCheck={false}
-              />
-            </TabPanel>
+          {/* ── Write tab (WYSIWYG) ── */}
+          {tab === "editor" && (
+            <RichEditor
+              key={editorKey}
+              content={editorHtml}
+              onChange={setEditorHtml}
+            />
           )}
 
           {/* ── Preview tab ── */}
@@ -701,7 +649,7 @@ export default function TemplateEditor({
                   <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.1"/>
                   <path d="M6 5.5v3M6 4h.01" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
                 </svg>
-                Rendered with sample data — switch to HTML tab to edit
+                Rendered with sample data
               </PreviewInfoBar>
               <iframe
                 srcDoc={previewSrcDoc}
@@ -712,12 +660,11 @@ export default function TemplateEditor({
             </TabPanel>
           )}
 
-          {/* ── Upload / Import tab ── */}
+          {/* ── Import .docx tab ── */}
           {tab === "upload" && (
             <TabPanel>
               <UploadBody>
 
-                {/* Drop zone */}
                 {!importHtml && (
                   <DropZone
                     $dragging={dragging}
@@ -747,15 +694,13 @@ export default function TemplateEditor({
                     </DropIconBox>
                     <div>
                       <DropTitle>{importing ? "Processing…" : "Drop your .docx file here"}</DropTitle>
-                      <DropHint>or click to browse · Word documents (.docx)</DropHint>
+                      <DropHint>or click to browse · Word documents only</DropHint>
                     </div>
                   </DropZone>
                 )}
 
-                {/* Import error */}
                 {importError && <ImportErrorMsg>{importError}</ImportErrorMsg>}
 
-                {/* Extracted HTML preview */}
                 {importHtml && (
                   <div>
                     <ImportHeaderRow>
@@ -766,7 +711,7 @@ export default function TemplateEditor({
                     </ImportHeaderRow>
 
                     <ImportPreviewWrap>
-                      <ImportPreviewBar>Extracted HTML preview</ImportPreviewBar>
+                      <ImportPreviewBar>Content preview</ImportPreviewBar>
                       <iframe
                         srcDoc={importHtml}
                         sandbox="allow-same-origin"
@@ -776,23 +721,21 @@ export default function TemplateEditor({
                     </ImportPreviewWrap>
 
                     <ImportWarning>
-                      This will replace your current template HTML. You can then add{" "}
-                      <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>{"{{variable}}"}</span>{" "}
-                      tokens from the sidebar to make it dynamic.
+                      This will load the document into the editor. You can then use the{" "}
+                      <strong>+ Insert variable</strong> button to add dynamic fields like guest name, dates, etc.
                     </ImportWarning>
 
                     <ImportActions>
-                      <UseContentBtn onClick={applyImport}>Use this content</UseContentBtn>
+                      <UseContentBtn onClick={applyImport}>Open in editor</UseContentBtn>
                       <DiscardBtn onClick={() => { setImportHtml(null); setImportError(null); }}>Discard</DiscardBtn>
                     </ImportActions>
                   </div>
                 )}
 
-                {/* Format note */}
                 {!importHtml && !importing && (
                   <FormatGrid>
                     {[
-                      { icon: "W", label: ".docx", note: "Supported — converted to HTML automatically", ok: true },
+                      { icon: "W", label: ".docx", note: "Supported — converted automatically", ok: true },
                       { icon: "P", label: ".pdf",  note: "Not supported — export to .docx first", ok: false },
                     ].map(({ icon, label, note, ok }) => (
                       <FormatCard key={label}>
@@ -813,7 +756,6 @@ export default function TemplateEditor({
         {/* ── Right: sidebar ───────────────────────────────────────────── */}
         <Sidebar>
 
-          {/* Settings */}
           <SidebarCard>
             <SidebarSectionLabel>Settings</SidebarSectionLabel>
             <DefaultCheckLabel>
@@ -829,25 +771,15 @@ export default function TemplateEditor({
             </DefaultCheckLabel>
           </SidebarCard>
 
-          {/* Variables reference */}
           <SidebarCard>
-            <SidebarSectionLabel>Available variables</SidebarSectionLabel>
-            <SidebarSubLabel>Click to insert at cursor in HTML tab</SidebarSubLabel>
-            <VarList>
-              {TEMPLATE_VARIABLES.map(({ key, label }) => (
-                <VarBtn
-                  key={key}
-                  onClick={() => { setTab("html"); insertVariable(key); }}
-                  title={label}
-                >
-                  <VarKey>{`{{${key}}}`}</VarKey>
-                  <VarLabel>{label}</VarLabel>
-                </VarBtn>
-              ))}
-            </VarList>
+            <SidebarSectionLabel>How to use</SidebarSectionLabel>
+            <HelpNote>
+              Write your contract text in the <strong>Write</strong> tab using the formatting toolbar.<br /><br />
+              Use <strong>+ Insert variable</strong> in the toolbar to add dynamic fields — they will be replaced with real guest and reservation data when the contract is generated.<br /><br />
+              Switch to <strong>Preview</strong> to see how it looks with sample data.
+            </HelpNote>
           </SidebarCard>
 
-          {/* Actions */}
           <ActionList>
             <SaveBtn onClick={handleSave} disabled={saving}>
               {saving ? "Saving…" : savedFlash ? "Saved ✓" : "Save changes"}
