@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import styled from "styled-components";
 
 export interface Property {
   id: string;
@@ -19,6 +20,118 @@ interface Props {
 
 const emptyForm = { name: "", address: "", city: "", country: "" };
 
+// ── Styled components ─────────────────────────────────────────────────────
+
+const AddForm = styled.form`
+  padding: 1rem 1.25rem;
+  border-bottom: 0.5px solid var(--app-border);
+`;
+
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+`;
+
+const FormInput = styled.input`
+  width: 100%;
+  font-size: 13px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 0.5px solid var(--app-border-md);
+  background: var(--app-surface);
+  color: var(--app-text-1);
+  outline: none;
+  transition: border-color 0.15s;
+
+  &:focus { border-color: var(--app-blue); }
+`;
+
+const FormActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const SaveBtn = styled.button<{ $saving?: boolean }>`
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  background: var(--app-blue);
+  color: #ffffff;
+  opacity: ${({ $saving }) => $saving ? 0.6 : 1};
+  transition: opacity 0.15s;
+`;
+
+const CancelBtn = styled.button`
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--app-text-2);
+  transition: color 0.15s;
+`;
+
+const ErrorText = styled.p`
+  font-size: 12px;
+  color: var(--app-red-text);
+  margin-bottom: 0.5rem;
+`;
+
+const EmptyMsg = styled.p`
+  padding: 1.5rem 1.25rem;
+  font-size: 13px;
+  color: var(--app-text-3);
+`;
+
+const ListWrap = styled.div`
+  padding: 0 1.25rem;
+`;
+
+const PropertyRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 0.5px solid var(--app-border);
+`;
+
+const PropName = styled.p`
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--app-text-1);
+`;
+
+const PropAddress = styled.p`
+  font-size: 11px;
+  margin-top: 2px;
+  color: var(--app-text-3);
+`;
+
+const RowActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const RemoveBtn = styled.button<{ $disabled?: boolean }>`
+  font-size: 12px;
+  border: none;
+  background: transparent;
+  color: var(--app-red-text);
+  cursor: pointer;
+  transition: opacity 0.15s;
+  opacity: ${({ $disabled }) => $disabled ? 0.4 : 1};
+  pointer-events: ${({ $disabled }) => $disabled ? "none" : "auto"};
+`;
+
+// ── Component ─────────────────────────────────────────────────────────────
+
 export default function PropertiesPanel({ initial, formOpen, onFormClose, onViewReservations }: Props) {
   const [properties, setProperties] = useState<Property[]>(initial);
   const [form, setForm]             = useState(emptyForm);
@@ -28,18 +141,12 @@ export default function PropertiesPanel({ initial, formOpen, onFormClose, onView
 
   function field(key: keyof typeof emptyForm, placeholder: string) {
     return (
-      <input
+      <FormInput
         type="text"
         required
         placeholder={placeholder}
         value={form[key]}
         onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-        className="w-full text-[13px] px-3 py-2 rounded-[8px] outline-none transition"
-        style={{
-          border: "0.5px solid var(--app-border-md)",
-          background: "var(--app-surface)",
-          color: "var(--app-text-1)",
-        }}
       />
     );
   }
@@ -71,68 +178,50 @@ export default function PropertiesPanel({ initial, formOpen, onFormClose, onView
   return (
     <>
       {formOpen && (
-        <form
-          onSubmit={handleAdd}
-          className="px-5 py-4 space-y-3"
-          style={{ borderBottom: "0.5px solid var(--app-border)" }}
-        >
-          <div className="grid grid-cols-2 gap-3">
+        <AddForm onSubmit={handleAdd}>
+          <FormGrid>
             {field("name", "Name")}
             {field("address", "Address")}
             {field("city", "City")}
             {field("country", "Country")}
-          </div>
-          {error && <p className="text-[12px]" style={{ color: "var(--app-red-text)" }}>{error}</p>}
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-[14px] py-[7px] rounded-[8px] text-[13px] font-medium transition"
-              style={{ background: "var(--app-blue)", color: "#ffffff", opacity: saving ? 0.6 : 1 }}
-            >
+          </FormGrid>
+          {error && <ErrorText>{error}</ErrorText>}
+          <FormActions>
+            <SaveBtn type="submit" disabled={saving} $saving={saving}>
               {saving ? "Saving…" : "Save property"}
-            </button>
-            <button
+            </SaveBtn>
+            <CancelBtn
               type="button"
               onClick={() => { onFormClose(); setForm(emptyForm); setError(""); }}
-              className="px-[14px] py-[7px] rounded-[8px] text-[13px] transition"
-              style={{ color: "var(--app-text-2)" }}
             >
               Cancel
-            </button>
-          </div>
-        </form>
+            </CancelBtn>
+          </FormActions>
+        </AddForm>
       )}
 
       {properties.length === 0 ? (
-        <p className="px-5 py-6 text-[13px]" style={{ color: "var(--app-text-3)" }}>No properties yet.</p>
+        <EmptyMsg>No properties yet.</EmptyMsg>
       ) : (
-        <div className="px-5">
+        <ListWrap>
           {properties.map((p) => (
-            <div
-              key={p.id}
-              className="flex items-center justify-between py-3"
-              style={{ borderBottom: "0.5px solid var(--app-border)" }}
-            >
+            <PropertyRow key={p.id}>
               <div>
-                <p className="text-[13px] font-medium" style={{ color: "var(--app-text-1)" }}>{p.name}</p>
-                <p className="text-[11px] mt-0.5" style={{ color: "var(--app-text-3)" }}>
-                  {p.address}, {p.city}, {p.country}
-                </p>
+                <PropName>{p.name}</PropName>
+                <PropAddress>{p.address}, {p.city}, {p.country}</PropAddress>
               </div>
-              <div className="flex items-center gap-4">
-                <button
+              <RowActions>
+                <RemoveBtn
                   onClick={() => handleDelete(p.id)}
+                  $disabled={deletingId === p.id}
                   disabled={deletingId === p.id}
-                  className="text-[12px] transition hover:opacity-75 disabled:opacity-40"
-                  style={{ color: "var(--app-red-text)" }}
                 >
                   {deletingId === p.id ? "Removing…" : "Remove"}
-                </button>
-              </div>
-            </div>
+                </RemoveBtn>
+              </RowActions>
+            </PropertyRow>
           ))}
-        </div>
+        </ListWrap>
       )}
     </>
   );

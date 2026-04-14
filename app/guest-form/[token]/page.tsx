@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import styled from "styled-components";
+
+// ── Types ─────────────────────────────────────────────────────────────────
 
 interface FormData {
   reservationId: string;
@@ -47,8 +50,328 @@ async function uploadFile(file: File, index: number): Promise<string> {
   });
 }
 
-// ── Shared input style ──────────────────────────────────────────────────────
-const inp = "w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900";
+// ── Styled components ─────────────────────────────────────────────────────
+
+const Page = styled.main`
+  min-height: 100vh;
+  background: #f5f5f3;
+  padding: 2rem 1rem;
+`;
+
+const PageCenter = styled.main`
+  min-height: 100vh;
+  background: #f5f5f3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1rem;
+`;
+
+const Container = styled.div`
+  max-width: 480px;
+  margin: 0 auto;
+`;
+
+const CenterBox = styled.div`
+  text-align: center;
+  max-width: 360px;
+`;
+
+const LoadingText = styled.p`
+  padding: 2rem;
+  font-size: 0.875rem;
+  text-align: center;
+  color: #9ca3af;
+`;
+
+const ErrorTitle = styled.p`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #dc2626;
+  margin-bottom: 0.5rem;
+`;
+
+const MutedText = styled.p`
+  font-size: 0.875rem;
+  color: #6b7280;
+`;
+
+const SuccessIcon = styled.div`
+  font-size: 3rem;
+  color: #22c55e;
+  margin-bottom: 1rem;
+`;
+
+const SuccessTitle = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #111827;
+`;
+
+const PropertyCard = styled.div`
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+`;
+
+const PropertyName = styled.h1`
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #111827;
+`;
+
+const PropertyDates = styled.p`
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin-top: 0.125rem;
+`;
+
+const StepCard = styled.div`
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+`;
+
+const StepTitle = styled.h2`
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #111827;
+`;
+
+const StepSubtitle = styled.p`
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin-top: 0.25rem;
+`;
+
+const CounterRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const CounterBtn = styled.button`
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+
+  &:hover { background: #f9fafb; }
+`;
+
+const CounterValue = styled.span`
+  font-size: 1.875rem;
+  font-weight: 600;
+  color: #111827;
+  width: 2rem;
+  text-align: center;
+`;
+
+const FormStack = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const GuestCard = styled.div`
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const GuestCardHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const GuestCardTitle = styled.h2`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+`;
+
+const GuestCardIndex = styled.span`
+  font-size: 0.75rem;
+  color: #9ca3af;
+`;
+
+const FieldLabel = styled.label`
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+`;
+
+const StyledInput = styled.input`
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  background: #ffffff;
+  color: #111827;
+  box-sizing: border-box;
+  transition: box-shadow 0.15s;
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
+  }
+`;
+
+const DocTypeRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const DocTypeBtn = styled.button<{ $selected: boolean }>`
+  flex: 1;
+  padding: 0.5rem 0;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid ${({ $selected }) => $selected ? "#bfdbfe" : "#e5e7eb"};
+  background: ${({ $selected }) => $selected ? "#eff6ff" : "#ffffff"};
+  color: ${({ $selected }) => $selected ? "#1d4ed8" : "#6b7280"};
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+`;
+
+const FilePreview = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  background: #f0fdf4;
+`;
+
+const FilePreviewName = styled.span`
+  font-size: 0.75rem;
+  color: #15803d;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const RemoveFileBtn = styled.button`
+  font-size: 0.75rem;
+  color: #9ca3af;
+  background: none;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+  padding: 0;
+
+  &:hover { color: #dc2626; }
+`;
+
+const DropLabel = styled.label`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  border: 2px dashed #e5e7eb;
+  border-radius: 8px;
+  padding: 1.25rem 1rem;
+  cursor: pointer;
+  background: #f9fafb;
+  transition: border-color 0.15s;
+
+  &:hover { border-color: #60a5fa; }
+`;
+
+const DropText = styled.span`
+  font-size: 0.875rem;
+  color: #9ca3af;
+`;
+
+const DropHint = styled.span`
+  font-size: 0.75rem;
+  color: #d1d5db;
+`;
+
+const FieldErrorText = styled.p`
+  font-size: 0.875rem;
+  color: #dc2626;
+  text-align: center;
+`;
+
+const FormActions = styled.div`
+  display: flex;
+  gap: 0.75rem;
+`;
+
+const BackBtn = styled.button`
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  font-size: 0.875rem;
+  color: #4b5563;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover { background: #f9fafb; }
+`;
+
+const PrimaryBtn = styled.button`
+  flex: 1;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:not(:disabled):hover { opacity: 0.9; }
+`;
+
+const SignCtaBtn = styled.button`
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.625rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 1.5rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+
+  &:hover { opacity: 0.9; }
+`;
 
 export default function GuestFormPage() {
   const { token } = useParams<{ token: string }>();
@@ -147,235 +470,184 @@ export default function GuestFormPage() {
 
   // ── Loading / error / done states ─────────────────────────────────────────
 
-  if (loading) return <p className="p-8 text-sm text-center text-gray-400">Loading…</p>;
+  if (loading) return <LoadingText>Loading…</LoadingText>;
 
   if (tokenError) return (
-    <main className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
-      <div className="text-center">
-        <p className="text-lg font-semibold text-red-600 mb-2">Link unavailable</p>
-        <p className="text-sm text-gray-500">{tokenError}</p>
-      </div>
-    </main>
+    <PageCenter>
+      <CenterBox>
+        <ErrorTitle>Link unavailable</ErrorTitle>
+        <MutedText>{tokenError}</MutedText>
+      </CenterBox>
+    </PageCenter>
   );
 
   if (submitted) return (
-    <main className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
-      <div className="text-center max-w-sm">
-        <div className="text-green-500 text-5xl mb-4">✓</div>
-        <h2 className="text-xl font-bold mb-2">Information submitted!</h2>
+    <PageCenter>
+      <CenterBox>
+        <SuccessIcon>✓</SuccessIcon>
+        <SuccessTitle>Information submitted!</SuccessTitle>
         {contractId && guestId ? (
           <>
-            <p className="text-sm text-gray-500 mb-6">Your contract is ready. Please sign it to complete check-in.</p>
-            <button
+            <MutedText>Your contract is ready. Please sign it to complete check-in.</MutedText>
+            <SignCtaBtn
               onClick={() => router.push(`/guest-form/${token}/sign?contractId=${contractId}&guestId=${guestId}`)}
-              className="bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
             >
               Continue to Sign Contract →
-            </button>
+            </SignCtaBtn>
           </>
         ) : (
-          <p className="text-sm text-gray-500">Thank you. Your host will send you a signing link shortly.</p>
+          <MutedText>Thank you. Your host will send you a signing link shortly.</MutedText>
         )}
-      </div>
-    </main>
+      </CenterBox>
+    </PageCenter>
   );
 
   // ── Property header ────────────────────────────────────────────────────────
 
   const header = (
-    <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
-      <h1 className="text-base font-bold text-gray-900">{formData?.propertyName}</h1>
-      <p className="text-sm text-gray-400 mt-0.5">
-        {formData ? `${new Date(formData.checkInDate).toLocaleDateString("en-GB")} → ${new Date(formData.checkOutDate).toLocaleDateString("en-GB")}` : ""}
-      </p>
-    </div>
+    <PropertyCard>
+      <PropertyName>{formData?.propertyName}</PropertyName>
+      <PropertyDates>
+        {formData
+          ? `${new Date(formData.checkInDate).toLocaleDateString("en-GB")} → ${new Date(formData.checkOutDate).toLocaleDateString("en-GB")}`
+          : ""}
+      </PropertyDates>
+    </PropertyCard>
   );
 
   // ── Step 1 — guest count ───────────────────────────────────────────────────
 
   if (step === 1) return (
-    <main className="min-h-screen bg-gray-50 px-4 py-8">
-      <div className="max-w-md mx-auto">
+    <Page>
+      <Container>
         {header}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
+        <StepCard>
           <div>
-            <h2 className="text-base font-semibold text-gray-900">How many guests?</h2>
-            <p className="text-sm text-gray-400 mt-1">
-              Include yourself. Each guest will need to provide a valid ID document.
-            </p>
+            <StepTitle>How many guests?</StepTitle>
+            <StepSubtitle>Include yourself. Each guest will need to provide a valid ID document.</StepSubtitle>
           </div>
 
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => setGuestCount((n) => Math.max(1, n - 1))}
-              className="w-10 h-10 rounded-full border border-gray-200 text-lg font-medium text-gray-700 hover:bg-gray-50 transition flex items-center justify-center"
-            >
-              −
-            </button>
-            <span className="text-3xl font-semibold text-gray-900 w-8 text-center">{guestCount}</span>
-            <button
-              type="button"
-              onClick={() => setGuestCount((n) => Math.min(10, n + 1))}
-              className="w-10 h-10 rounded-full border border-gray-200 text-lg font-medium text-gray-700 hover:bg-gray-50 transition flex items-center justify-center"
-            >
-              +
-            </button>
-          </div>
+          <CounterRow>
+            <CounterBtn type="button" onClick={() => setGuestCount((n) => Math.max(1, n - 1))}>−</CounterBtn>
+            <CounterValue>{guestCount}</CounterValue>
+            <CounterBtn type="button" onClick={() => setGuestCount((n) => Math.min(10, n + 1))}>+</CounterBtn>
+          </CounterRow>
 
-          <button
-            onClick={handleGuestCountConfirm}
-            className="w-full bg-blue-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-blue-700 transition"
-          >
-            Continue →
-          </button>
-        </div>
-      </div>
-    </main>
+          <PrimaryBtn onClick={handleGuestCountConfirm}>Continue →</PrimaryBtn>
+        </StepCard>
+      </Container>
+    </Page>
   );
 
   // ── Step 2 — guest details ─────────────────────────────────────────────────
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-8">
-      <div className="max-w-md mx-auto">
+    <Page>
+      <Container>
         {header}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <FormStack onSubmit={handleSubmit}>
           {guests.map((g, i) => {
             const isMain = i === 0;
             return (
-              <div key={i} className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-gray-900">
+              <GuestCard key={i}>
+                <GuestCardHeader>
+                  <GuestCardTitle>
                     {isMain ? "Your information (main guest)" : `Guest ${i + 1}`}
-                  </h2>
+                  </GuestCardTitle>
                   {guests.length > 1 && (
-                    <span className="text-xs text-gray-400">{i + 1} / {guests.length}</span>
+                    <GuestCardIndex>{i + 1} / {guests.length}</GuestCardIndex>
                   )}
-                </div>
+                </GuestCardHeader>
 
-                {/* Full name — all guests */}
+                {/* Full name */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                    Full Name *
-                  </label>
-                  <input type="text" required value={g.fullName}
+                  <FieldLabel>Full Name *</FieldLabel>
+                  <StyledInput type="text" required value={g.fullName}
                     onChange={(e) => updateGuest(i, "fullName", e.target.value)}
-                    className={inp} placeholder="Jane Doe" />
+                    placeholder="Jane Doe" />
                 </div>
 
                 {/* Email & phone — main guest only */}
                 {isMain && (
                   <>
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                        Email *
-                      </label>
-                      <input type="email" required value={g.email}
+                      <FieldLabel>Email *</FieldLabel>
+                      <StyledInput type="email" required value={g.email}
                         onChange={(e) => updateGuest(i, "email", e.target.value)}
-                        className={inp} placeholder="you@example.com" />
+                        placeholder="you@example.com" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                        Phone / WhatsApp *
-                      </label>
-                      <input type="tel" required value={g.phone}
+                      <FieldLabel>Phone / WhatsApp *</FieldLabel>
+                      <StyledInput type="tel" required value={g.phone}
                         onChange={(e) => updateGuest(i, "phone", e.target.value)}
-                        className={inp} placeholder="+212 6 12 34 56 78" />
+                        placeholder="+212 6 12 34 56 78" />
                     </div>
                   </>
                 )}
 
                 {/* Document type */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                    Document Type *
-                  </label>
-                  <div className="flex gap-2">
+                  <FieldLabel>Document Type *</FieldLabel>
+                  <DocTypeRow>
                     {(["passport", "id_card", "driving_license"] as const).map((type) => (
-                      <button
+                      <DocTypeBtn
                         key={type}
                         type="button"
+                        $selected={g.documentType === type}
                         onClick={() => updateGuest(i, "documentType", type)}
-                        className="flex-1 py-2 rounded-lg text-xs font-medium border transition"
-                        style={{
-                          background: g.documentType === type ? "#EFF6FF" : "#ffffff",
-                          color: g.documentType === type ? "#1D4ED8" : "#6b7280",
-                          borderColor: g.documentType === type ? "#BFDBFE" : "#e5e7eb",
-                        }}
                       >
                         {DOC_LABELS[type]}
-                      </button>
+                      </DocTypeBtn>
                     ))}
-                  </div>
+                  </DocTypeRow>
                 </div>
 
                 {/* Document number */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                    {DOC_LABELS[g.documentType]} Number *
-                  </label>
-                  <input type="text" required value={g.documentNumber}
+                  <FieldLabel>{DOC_LABELS[g.documentType]} Number *</FieldLabel>
+                  <StyledInput type="text" required value={g.documentNumber}
                     onChange={(e) => updateGuest(i, "documentNumber", e.target.value)}
-                    className={inp} placeholder="AB123456" />
+                    placeholder="AB123456" />
                 </div>
 
                 {/* Document upload */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                    Upload {DOC_LABELS[g.documentType]} *
-                  </label>
+                  <FieldLabel>Upload {DOC_LABELS[g.documentType]} *</FieldLabel>
                   {g.documentFile ? (
-                    <div className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 bg-green-50">
-                      <span className="text-xs text-green-700 truncate">{g.documentFile.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => updateGuest(i, "documentFile", null)}
-                        className="text-xs text-gray-400 hover:text-red-500 ml-2 flex-shrink-0"
-                      >
+                    <FilePreview>
+                      <FilePreviewName>{g.documentFile.name}</FilePreviewName>
+                      <RemoveFileBtn type="button" onClick={() => updateGuest(i, "documentFile", null)}>
                         Remove
-                      </button>
-                    </div>
+                      </RemoveFileBtn>
+                    </FilePreview>
                   ) : (
-                    <label className="flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-gray-200 px-4 py-5 cursor-pointer hover:border-blue-400 transition bg-gray-50">
-                      <span className="text-sm text-gray-400">Tap to upload photo or scan</span>
-                      <span className="text-xs text-gray-300">JPG, PNG or PDF</span>
+                    <DropLabel>
+                      <DropText>Tap to upload photo or scan</DropText>
+                      <DropHint>JPG, PNG or PDF</DropHint>
                       <input
                         type="file"
                         accept="image/*,.pdf"
-                        className="hidden"
+                        style={{ display: "none" }}
                         onChange={(e) => updateGuest(i, "documentFile", e.target.files?.[0] ?? null)}
                       />
-                    </label>
+                    </DropLabel>
                   )}
                 </div>
-              </div>
+              </GuestCard>
             );
           })}
 
-          {fieldError && (
-            <p className="text-sm text-red-600 text-center">{fieldError}</p>
-          )}
+          {fieldError && <FieldErrorText>{fieldError}</FieldErrorText>}
 
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className="px-4 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition"
-            >
-              ← Back
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex-1 bg-blue-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition"
-            >
+          <FormActions>
+            <BackBtn type="button" onClick={() => setStep(1)}>← Back</BackBtn>
+            <PrimaryBtn type="submit" disabled={submitting}>
               {submitting ? "Uploading & submitting…" : `Submit ${guests.length > 1 ? `${guests.length} guests` : "information"}`}
-            </button>
-          </div>
-        </form>
-      </div>
-    </main>
+            </PrimaryBtn>
+          </FormActions>
+        </FormStack>
+      </Container>
+    </Page>
   );
 }

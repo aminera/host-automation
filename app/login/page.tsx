@@ -3,6 +3,96 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import styled from "styled-components";
+
+const Page = styled.main`
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-bg);
+  padding: 0 1rem;
+`;
+
+const Card = styled.div`
+  width: 100%;
+  max-width: 360px;
+  background: var(--app-surface);
+  border-radius: 16px;
+  border: 0.5px solid var(--app-border);
+  padding: 2rem;
+`;
+
+const Title = styled.h1`
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 0.375rem;
+  color: var(--app-text-1);
+`;
+
+const Subtitle = styled.p`
+  font-size: 0.875rem;
+  color: var(--app-text-3);
+  text-align: center;
+  margin-bottom: 1.5rem;
+`;
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const Field = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+const Label = styled.label`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--app-text-2);
+`;
+
+const Input = styled.input`
+  border: 0.5px solid var(--app-border-md);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  background: var(--app-surface);
+  color: var(--app-text-1);
+  outline: none;
+  transition: border-color 0.15s;
+
+  &:focus {
+    border-color: var(--app-blue);
+  }
+`;
+
+const ErrorMsg = styled.p`
+  font-size: 0.875rem;
+  color: var(--app-red-text);
+`;
+
+const SubmitBtn = styled.button`
+  width: 100%;
+  background: var(--app-blue);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,47 +122,41 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow p-8">
-        <h1 className="text-2xl font-bold text-center mb-2">HostAutomation</h1>
-        <p className="text-sm text-gray-500 text-center mb-6">Sign in to your account</p>
+    <Page>
+      <Card>
+        <Title>HostAutomation</Title>
+        <Subtitle>Sign in to your account</Subtitle>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
+        <Form onSubmit={handleSubmit}>
+          <Field>
+            <Label>Email</Label>
+            <Input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="you@example.com"
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <input
+          <Field>
+            <Label>Password</Label>
+            <Input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="••••••••"
             />
-          </div>
+          </Field>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <ErrorMsg>{error}</ErrorMsg>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition"
-          >
+          <SubmitBtn type="submit" disabled={loading}>
             {loading ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
-      </div>
-    </main>
+          </SubmitBtn>
+        </Form>
+      </Card>
+    </Page>
   );
 }

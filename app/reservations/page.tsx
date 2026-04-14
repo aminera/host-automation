@@ -4,7 +4,11 @@ import ReservationsClient from "./ReservationsClient";
 
 export default async function ReservationsPage() {
   const session = await auth();
-  const userId  = session?.user?.id!;
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    throw new Error("User ID is required");
+  }
 
   const raw = await getReservations(userId);
 

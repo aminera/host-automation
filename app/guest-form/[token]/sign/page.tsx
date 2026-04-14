@@ -3,6 +3,122 @@
 import { useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import SignatureCanvas from "react-signature-canvas";
+import styled from "styled-components";
+
+// ── Styled components ─────────────────────────────────────────────────────
+
+const Page = styled.main`
+  min-height: 100vh;
+  background: #f5f5f3;
+  padding: 2rem 1rem;
+`;
+
+const PageCenter = styled.main`
+  min-height: 100vh;
+  background: #f5f5f3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1rem;
+`;
+
+const Container = styled.div`
+  max-width: 480px;
+  margin: 0 auto;
+`;
+
+const Card = styled.div`
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+`;
+
+const Title = styled.h1`
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  color: #111827;
+`;
+
+const Subtitle = styled.p`
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+`;
+
+const SignatureBox = styled.div`
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+  margin-bottom: 1rem;
+`;
+
+const BtnRow = styled.div`
+  display: flex;
+  gap: 0.75rem;
+`;
+
+const ClearBtn = styled.button`
+  flex: 1;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  border-radius: 8px;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  background: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover { background: #f9fafb; }
+`;
+
+const SignBtn = styled.button`
+  flex: 1;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+const ErrorMsg = styled.p`
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: #dc2626;
+`;
+
+const SuccessIcon = styled.div`
+  font-size: 3rem;
+  color: #16a34a;
+  margin-bottom: 1rem;
+`;
+
+const SuccessTitle = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #111827;
+`;
+
+const SuccessText = styled.p`
+  font-size: 0.875rem;
+  color: #6b7280;
+`;
+
+const TextCenter = styled.div`
+  text-align: center;
+`;
+
+// ── Component ─────────────────────────────────────────────────────────────
 
 export default function SignPage() {
   const { token } = useParams<{ token: string }>();
@@ -52,53 +168,44 @@ export default function SignPage() {
   }
 
   if (done) return (
-    <main className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
-      <div className="text-center max-w-sm">
-        <div className="text-green-600 text-5xl mb-4">✓</div>
-        <h2 className="text-xl font-bold mb-2">Contract signed!</h2>
-        <p className="text-sm text-gray-500">Your digital signature has been saved. The contract is now complete.</p>
-      </div>
-    </main>
+    <PageCenter>
+      <TextCenter>
+        <SuccessIcon>✓</SuccessIcon>
+        <SuccessTitle>Contract signed!</SuccessTitle>
+        <SuccessText>Your digital signature has been saved. The contract is now complete.</SuccessText>
+      </TextCenter>
+    </PageCenter>
   );
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-8">
-      <div className="max-w-md mx-auto">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <h1 className="text-lg font-bold mb-1">Sign Your Contract</h1>
-          <p className="text-sm text-gray-500 mb-6">Please draw your signature in the box below using your finger or mouse.</p>
+    <Page>
+      <Container>
+        <Card>
+          <Title>Sign Your Contract</Title>
+          <Subtitle>Please draw your signature in the box below using your finger or mouse.</Subtitle>
 
-          <div className="border-2 border-dashed border-gray-300 rounded-xl overflow-hidden bg-white mb-4">
+          <SignatureBox>
             <SignatureCanvas
               ref={sigRef}
               penColor="black"
               canvasProps={{
                 width: 400,
                 height: 200,
-                className: "w-full",
+                style: { width: "100%" },
               }}
             />
-          </div>
+          </SignatureBox>
 
-          <div className="flex gap-3">
-            <button
-              onClick={clearSignature}
-              className="flex-1 border border-gray-300 text-gray-700 rounded-lg py-2 text-sm hover:bg-gray-50"
-            >
-              Clear
-            </button>
-            <button
-              onClick={handleSign}
-              disabled={submitting}
-              className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-            >
+          <BtnRow>
+            <ClearBtn onClick={clearSignature}>Clear</ClearBtn>
+            <SignBtn onClick={handleSign} disabled={submitting}>
               {submitting ? "Signing…" : "Confirm & Sign"}
-            </button>
-          </div>
+            </SignBtn>
+          </BtnRow>
 
-          {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-        </div>
-      </div>
-    </main>
+          {error && <ErrorMsg>{error}</ErrorMsg>}
+        </Card>
+      </Container>
+    </Page>
   );
 }

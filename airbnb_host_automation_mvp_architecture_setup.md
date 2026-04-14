@@ -30,7 +30,7 @@ Storage (Cloudinary)
 ### Frontend + Backend
 - Next.js (App Router)
 - React
-- Tailwind + Shadcn
+- styled-components v6 (CSS-in-JS, SSR via registry)
 
 ### Backend Logic
 - Next.js Route Handlers

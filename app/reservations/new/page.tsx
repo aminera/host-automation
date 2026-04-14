@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import styled from "styled-components";
 
 interface BookedRange {
   id: string;
@@ -23,41 +24,138 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-interface DateInputProps {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  min?: string;
-  hasError?: boolean;
-}
+// ── Styled components ─────────────────────────────────────────────────────
 
-function DateInput({ label, value, onChange, min, hasError }: DateInputProps) {
-  return (
-    <div className="flex-1">
-      <label
-        className="block text-[11px] font-medium uppercase tracking-wide mb-1"
-        style={{ color: "var(--app-text-3)" }}
-      >
-        {label}
-      </label>
-      <input
-        type="date"
-        required
-        value={value}
-        min={min}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-[8px] px-3 py-2 text-[13px] outline-none transition"
-        style={{
-          border: hasError
-            ? "0.5px solid var(--app-red-text)"
-            : "0.5px solid var(--app-border-md)",
-          background: hasError ? "var(--app-amber-bg)" : "var(--app-surface)",
-          color: "var(--app-text-1)",
-        }}
-      />
-    </div>
-  );
-}
+const Page = styled.div`
+  max-width: 540px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const BackLink = styled(Link)`
+  font-size: 13px;
+  color: var(--app-blue);
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+`;
+
+const Card = styled.div`
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--app-surface);
+  border: 0.5px solid var(--app-border);
+`;
+
+const CardHeader = styled.div`
+  padding: 1rem 1.25rem;
+  border-bottom: 0.5px solid var(--app-border);
+`;
+
+const CardTitle = styled.h1`
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--app-text-1);
+`;
+
+const CardSubtitle = styled.p`
+  font-size: 12px;
+  margin-top: 2px;
+  color: var(--app-text-3);
+`;
+
+const Form = styled.form`
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const FieldGroup = styled.div``;
+
+const FieldLabel = styled.label`
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+  color: var(--app-text-3);
+`;
+
+const StyledInput = styled.input<{ $hasError?: boolean }>`
+  width: 100%;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+  border: 0.5px solid ${({ $hasError }) => $hasError ? "var(--app-red-text)" : "var(--app-border-md)"};
+  background: ${({ $hasError }) => $hasError ? "var(--app-amber-bg)" : "var(--app-surface)"};
+  color: var(--app-text-1);
+`;
+
+const StyledSelect = styled.select`
+  width: 100%;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+  border: 0.5px solid var(--app-border-md);
+  background: var(--app-surface);
+  color: var(--app-text-1);
+`;
+
+const DateRow = styled.div`
+  display: flex;
+  gap: 0.75rem;
+`;
+
+const DateField = styled.div`
+  flex: 1;
+`;
+
+const ConflictAlert = styled.div`
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 12px;
+  background: var(--app-amber-bg);
+  color: var(--app-amber-text);
+  border: 0.5px solid var(--app-amber-text);
+`;
+
+const ErrorText = styled.p`
+  font-size: 12px;
+  color: var(--app-red-text);
+`;
+
+const LoadingText = styled.p`
+  font-size: 13px;
+  color: var(--app-text-3);
+`;
+
+const SubmitBtn = styled.button`
+  width: 100%;
+  border-radius: 8px;
+  padding: 0.5rem;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  background: var(--app-blue);
+  color: #ffffff;
+  transition: opacity 0.15s;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+// ── Component ─────────────────────────────────────────────────────────────
 
 export default function NewReservationPage() {
   const router = useRouter();
@@ -129,86 +227,80 @@ export default function NewReservationPage() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  const fieldLabel = (text: string) => (
-    <label
-      className="block text-[11px] font-medium uppercase tracking-wide mb-1"
-      style={{ color: "var(--app-text-3)" }}
-    >
-      {text}
-    </label>
-  );
-
-  const selectClass = "w-full rounded-[8px] px-3 py-2 text-[13px] outline-none transition";
-  const selectStyle = {
-    border: "0.5px solid var(--app-border-md)",
-    background: "var(--app-surface)",
-    color: "var(--app-text-1)",
-  };
-
   return (
-    <div className="max-w-[540px] mx-auto px-8 py-8 space-y-4">
+    <Page>
+      <BackLink href="/dashboard">← Back to Dashboard</BackLink>
 
-      <Link href="/dashboard" className="text-[13px] transition" style={{ color: "var(--app-blue)" }}>
-        ← Back to Dashboard
-      </Link>
+      <Card>
+        <CardHeader>
+          <CardTitle>New Reservation</CardTitle>
+          <CardSubtitle>Fill in the details to create a reservation.</CardSubtitle>
+        </CardHeader>
 
-      <div
-        className="rounded-[12px] overflow-hidden"
-        style={{ background: "var(--app-surface)", border: "0.5px solid var(--app-border)" }}
-      >
-        <div className="px-5 py-4" style={{ borderBottom: "0.5px solid var(--app-border)" }}>
-          <h1 className="text-[14px] font-medium" style={{ color: "var(--app-text-1)" }}>New Reservation</h1>
-          <p className="text-[12px] mt-0.5" style={{ color: "var(--app-text-3)" }}>Fill in the details to create a reservation.</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="px-5 py-5 space-y-4">
-          <div>
-            {fieldLabel("Property")}
+        <Form onSubmit={handleSubmit}>
+          <FieldGroup>
+            <FieldLabel>Property</FieldLabel>
             {properties.length === 0 ? (
-              <p className="text-[13px]" style={{ color: "var(--app-text-3)" }}>Loading properties…</p>
+              <LoadingText>Loading properties…</LoadingText>
             ) : (
-              <select value={propertyId} onChange={(e) => setPropertyId(e.target.value)} className={selectClass} style={selectStyle}>
+              <StyledSelect value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
                 {properties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
+              </StyledSelect>
             )}
-          </div>
+          </FieldGroup>
 
-          <div className="flex gap-3">
-            <DateInput label="Check-In"  value={checkIn}  onChange={handleCheckInChange}             min={today}          hasError={hasDateError && !!checkIn}  />
-            <DateInput label="Check-Out" value={checkOut} onChange={(v) => { setCheckOut(v); setError(""); }} min={checkIn || today} hasError={hasDateError && !!checkOut} />
-          </div>
+          <DateRow>
+            <DateField>
+              <FieldLabel>Check-In</FieldLabel>
+              <StyledInput
+                type="date"
+                required
+                value={checkIn}
+                min={today}
+                onChange={(e) => handleCheckInChange(e.target.value)}
+                $hasError={hasDateError && !!checkIn}
+              />
+            </DateField>
+            <DateField>
+              <FieldLabel>Check-Out</FieldLabel>
+              <StyledInput
+                type="date"
+                required
+                value={checkOut}
+                min={checkIn || today}
+                onChange={(e) => { setCheckOut(e.target.value); setError(""); }}
+                $hasError={hasDateError && !!checkOut}
+              />
+            </DateField>
+          </DateRow>
 
           {conflict && checkIn && checkOut && (
-            <div
-              className="rounded-[8px] px-3 py-2 text-[12px]"
-              style={{ background: "var(--app-amber-bg)", color: "var(--app-amber-text)", border: "0.5px solid var(--app-amber-text)" }}
-            >
+            <ConflictAlert>
               Already booked from <strong>{formatDate(conflict.checkIn)}</strong> to{" "}
               <strong>{formatDate(conflict.checkOut)}</strong>. Choose different dates.
-            </div>
+            </ConflictAlert>
           )}
 
-          <div>
-            {fieldLabel("Source")}
-            <select value={source} onChange={(e) => setSource(e.target.value)} className={selectClass} style={selectStyle}>
+          <FieldGroup>
+            <FieldLabel>Source</FieldLabel>
+            <StyledSelect value={source} onChange={(e) => setSource(e.target.value)}>
               <option value="airbnb">Airbnb</option>
               <option value="booking">Booking.com</option>
               <option value="direct">Direct</option>
-            </select>
-          </div>
+            </StyledSelect>
+          </FieldGroup>
 
-          {error && <p className="text-[12px]" style={{ color: "var(--app-red-text)" }}>{error}</p>}
+          {error && <ErrorText>{error}</ErrorText>}
 
-          <button
+          <SubmitBtn
             type="submit"
             disabled={submitting || properties.length === 0 || hasDateError}
-            className="w-full rounded-[8px] py-2 text-[13px] font-medium transition disabled:opacity-50"
-            style={{ background: "var(--app-blue)", color: "#ffffff" }}
           >
             {submitting ? "Creating…" : "Create Reservation"}
-          </button>
-        </form>
-      </div>
-    </div>
+          </SubmitBtn>
+        </Form>
+      </Card>
+    </Page>
   );
 }
+

@@ -34,10 +34,17 @@ export default async function DashboardPage() {
     pendingActions: reservations.filter((r) => r.status === "pending").length,
   };
 
+  // Format dates to ISO strings for client component
+  const formattedReservations = reservations.map((r) => ({
+    ...r,
+    checkInDate: r.checkInDate.toISOString(),
+    checkOutDate: r.checkOutDate.toISOString(),
+  }));
+
   return (
     <Suspense>
       <DashboardClient
-        reservations={reservations}
+        reservations={formattedReservations}
         properties={properties}
         metrics={metrics}
       />

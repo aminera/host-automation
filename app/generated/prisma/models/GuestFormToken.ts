@@ -381,10 +381,6 @@ export type GuestFormTokenUncheckedUpdateManyWithoutReservationNestedInput = {
   deleteMany?: Prisma.GuestFormTokenScalarWhereInput | Prisma.GuestFormTokenScalarWhereInput[]
 }
 
-export type BoolFieldUpdateOperationsInput = {
-  set?: boolean
-}
-
 export type GuestFormTokenCreateWithoutReservationInput = {
   id?: string
   token?: string

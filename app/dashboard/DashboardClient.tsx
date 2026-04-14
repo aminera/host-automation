@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import styled from "styled-components";
 import PropertiesPanel, { Property } from "./PropertiesPanel";
+
+// ── Types ─────────────────────────────────────────────────────────────────
 
 interface ReservationRow {
   id: string;
@@ -49,15 +53,261 @@ const filterLabels: { key: StatusFilter; label: string }[] = [
   { key: "signed",          label: "Signed" },
 ];
 
+// ── Styled components ─────────────────────────────────────────────────────
+
+const PageWrap = styled.div`
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const PageHeaderRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+`;
+
+const PageTitle = styled.h1`
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--app-text-1);
+`;
+
+const PageSubtitle = styled.p`
+  font-size: 12px;
+  margin-top: 0.125rem;
+  color: var(--app-text-3);
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const OutlineBtn = styled.button<{ $active?: boolean }>`
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  border: 0.5px solid var(--app-border-md);
+  background: ${({ $active }) => $active ? "var(--app-surface-2)" : "var(--app-surface)"};
+  color: var(--app-text-1);
+`;
+
+const PrimaryLink = styled(Link)`
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--app-blue);
+  color: #ffffff;
+  text-decoration: none;
+  transition: opacity 0.15s;
+  &:hover { opacity: 0.9; }
+`;
+
+const MetricsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+
+  @media (max-width: 700px) { grid-template-columns: repeat(2, 1fr); }
+`;
+
+const MetricCard = styled.div`
+  background: var(--app-surface-2);
+  border-radius: 8px;
+  padding: 1rem;
+`;
+
+const MetricLabel = styled.p`
+  font-size: 12px;
+  margin-bottom: 6px;
+  color: var(--app-text-2);
+`;
+
+const MetricValue = styled.p<{ $amber?: boolean }>`
+  font-size: 22px;
+  font-weight: 500;
+  color: ${({ $amber }) => $amber ? "var(--app-amber-text)" : "var(--app-text-1)"};
+`;
+
+const MetricSub = styled.p`
+  font-size: 11px;
+  margin-top: 0.25rem;
+  color: var(--app-text-3);
+`;
+
+const SectionCard = styled.div`
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--app-surface);
+  border: 0.5px solid var(--app-border);
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 0.5px solid var(--app-border);
+`;
+
+const SectionHeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const SectionTitle = styled.span`
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--app-text-1);
+`;
+
+const SectionCount = styled.span`
+  font-size: 12px;
+  color: var(--app-text-3);
+`;
+
+const PropertyFilterTag = styled.button`
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  border: none;
+  background: var(--app-blue-bg);
+  color: var(--app-blue-text);
+  cursor: pointer;
+  transition: opacity 0.15s;
+  &:hover { opacity: 0.8; }
+`;
+
+const FilterRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 0.5px solid var(--app-border);
+`;
+
+const FilterPill = styled.button<{ $active: boolean }>`
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  border: 0.5px solid ${({ $active }) => $active ? "var(--app-blue)" : "var(--app-border-md)"};
+  background: ${({ $active }) => $active ? "var(--app-blue)" : "var(--app-surface)"};
+  color: ${({ $active }) => $active ? "#ffffff" : "var(--app-text-2)"};
+`;
+
+const EmptyMsg = styled.p`
+  padding: 2.5rem 1.25rem;
+  font-size: 13px;
+  text-align: center;
+  color: var(--app-text-3);
+`;
+
+const TableWrap = styled.div`
+  overflow-x: auto;
+`;
+
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  min-width: 600px;
+`;
+
+const THead = styled.thead`
+  background: var(--app-surface-2);
+  border-bottom: 0.5px solid var(--app-border);
+`;
+
+const Th = styled.th<{ $w?: string; $hideBelow?: number }>`
+  padding: 10px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--app-text-2);
+  width: ${({ $w }) => $w ?? "auto"};
+  ${({ $hideBelow }) => $hideBelow ? `@media (max-width: ${$hideBelow}px) { display: none; }` : ""}
+`;
+
+const TRow = styled.tr<{ $last?: boolean }>`
+  border-bottom: ${({ $last }) => $last ? "none" : "0.5px solid var(--app-border)"};
+  cursor: pointer;
+  transition: background 0.15s;
+  &:hover td { background: var(--app-surface-2); }
+`;
+
+const Td = styled.td<{ $hideBelow?: number }>`
+  padding: 10px;
+  font-size: 13px;
+  color: var(--app-text-1);
+  ${({ $hideBelow }) => $hideBelow ? `@media (max-width: ${$hideBelow}px) { display: none; }` : ""}
+`;
+
+const CellPrimary = styled.span`
+  display: block;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--app-text-1);
+`;
+
+const CellSub = styled.span`
+  display: block;
+  font-size: 11px;
+  color: var(--app-text-3);
+`;
+
+const SourceDot = styled.span`
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+  flex-shrink: 0;
+  background: var(--app-blue);
+`;
+
+const ManageLink = styled(Link)`
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--app-blue);
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+`;
+
+// ── Badge ──────────────────────────────────────────────────────────────────
+
+const BadgeSpan = styled.span<{ $bg: string; $color: string }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: ${({ $bg }) => $bg};
+  color: ${({ $color }) => $color};
+`;
+
 function Badge({ children, bg, color }: { children: React.ReactNode; bg: string; color: string }) {
-  return (
-    <span
-      className="inline-flex items-center px-[10px] py-[3px] rounded-[8px] text-[11px] font-medium whitespace-nowrap"
-      style={{ background: bg, color }}
-    >
-      {children}
-    </span>
-  );
+  return <BadgeSpan $bg={bg} $color={color}>{children}</BadgeSpan>;
 }
 
 function statusBadge(status: string) {
@@ -81,79 +331,84 @@ function contractBadge(status: string) {
   return                          <Badge bg="var(--app-surface-2)" color="var(--app-text-2)">{status}</Badge>;
 }
 
+// ── Component ─────────────────────────────────────────────────────────────
+
 export default function DashboardClient({ reservations, properties, metrics }: Props) {
+  const router = useRouter();
   const [propertyFormOpen, setPropertyFormOpen] = useState(false);
   const [statusFilter, setStatusFilter]         = useState<StatusFilter>("all");
   const [propertyFilter, setPropertyFilter]     = useState<string | null>(null);
 
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long", year: "numeric", month: "long", day: "numeric",
-  });
+  const today = useMemo(() =>
+    new Date().toLocaleDateString("en-US", {
+      weekday: "long", year: "numeric", month: "long", day: "numeric",
+    }), []
+  );
 
-  const filteredReservations = reservations.filter((r) => {
-    if (propertyFilter && r.property.id !== propertyFilter) return false;
-    if (statusFilter === "pending")         return r.status === "pending";
-    if (statusFilter === "guest_submitted") return r.status === "guest_submitted";
-    if (statusFilter === "signed")          return r.contracts[0]?.status === "signed";
-    return true;
-  });
+  const filterFns: Record<StatusFilter, (r: ReservationRow) => boolean> = {
+    all: () => true,
+    pending: (r) => r.status === "pending",
+    guest_submitted: (r) => r.status === "guest_submitted",
+    signed: (r) => r.contracts[0]?.status === "signed",
+  };
 
-  const surface   = { background: "var(--app-surface)",   border: "0.5px solid var(--app-border)" };
-  const divider   = { borderBottom: "0.5px solid var(--app-border)" };
+  const filteredReservations = useMemo(() =>
+    reservations.filter((r) => {
+      if (propertyFilter && r.property.id !== propertyFilter) return false;
+      return filterFns[statusFilter](r);
+    }), [reservations, propertyFilter, statusFilter, filterFns]
+  );
 
   return (
-    <div className="max-w-[1200px] mx-auto px-8 py-8 space-y-4">
+    <PageWrap>
 
       {/* Page header */}
-      <div className="flex items-start justify-between mb-2">
+      <PageHeaderRow>
         <div>
-          <h1 className="text-[20px] font-medium" style={{ color: "var(--app-text-1)" }}>Dashboard</h1>
-          <p className="text-[12px] mt-0.5" style={{ color: "var(--app-text-3)" }}>{today}</p>
+          <PageTitle>Dashboard</PageTitle>
+          <PageSubtitle>{today}</PageSubtitle>
         </div>
-        <div className="flex gap-2">
-          <button
+        <HeaderActions>
+          <OutlineBtn
+            $active={propertyFormOpen}
             onClick={() => setPropertyFormOpen((v) => !v)}
-            className="px-[14px] py-[7px] rounded-[8px] text-[13px] font-medium transition cursor-pointer"
-            style={{
-              border: "0.5px solid var(--app-border-md)",
-              background: propertyFormOpen ? "var(--app-surface-2)" : "var(--app-surface)",
-              color: "var(--app-text-1)",
-            }}
           >
             {propertyFormOpen ? "Cancel" : "+ Add property"}
-          </button>
-          <Link
-            href="/reservations/new"
-            className="px-[14px] py-[7px] rounded-[8px] text-[13px] font-medium transition"
-            style={{ background: "var(--app-blue)", color: "#ffffff" }}
-          >
-            + New reservation
-          </Link>
-        </div>
-      </div>
+          </OutlineBtn>
+          <PrimaryLink href="/reservations/new">+ New reservation</PrimaryLink>
+        </HeaderActions>
+      </PageHeaderRow>
 
       {/* Metrics */}
-      <div className="grid grid-cols-4 gap-3">
-        {[
-          { label: "Properties",       value: metrics.properties,            sub: "Active listings",   valueColor: undefined },
-          { label: "Reservations",     value: metrics.reservationsThisMonth, sub: "This month",        valueColor: undefined },
-          { label: "Contracts signed", value: metrics.contractsSigned,       sub: "Total signed",      valueColor: undefined },
-          { label: "Pending action",   value: metrics.pendingActions,        sub: metrics.pendingActions === 0 ? "All clear" : "Needs attention", valueColor: metrics.pendingActions > 0 ? "var(--app-amber-text)" : undefined },
-        ].map(({ label, value, sub, valueColor }) => (
-          <div key={label} className="rounded-[8px] p-4" style={{ background: "var(--app-surface-2)" }}>
-            <p className="text-[12px] mb-1.5" style={{ color: "var(--app-text-2)" }}>{label}</p>
-            <p className="text-[22px] font-medium" style={{ color: valueColor ?? "var(--app-text-1)" }}>{value}</p>
-            <p className="text-[11px] mt-1" style={{ color: "var(--app-text-3)" }}>{sub}</p>
-          </div>
-        ))}
-      </div>
+      <MetricsGrid>
+        <MetricCard>
+          <MetricLabel>Properties</MetricLabel>
+          <MetricValue>{metrics.properties}</MetricValue>
+          <MetricSub>Active listings</MetricSub>
+        </MetricCard>
+        <MetricCard>
+          <MetricLabel>Reservations</MetricLabel>
+          <MetricValue>{metrics.reservationsThisMonth}</MetricValue>
+          <MetricSub>This month</MetricSub>
+        </MetricCard>
+        <MetricCard>
+          <MetricLabel>Contracts signed</MetricLabel>
+          <MetricValue>{metrics.contractsSigned}</MetricValue>
+          <MetricSub>Total signed</MetricSub>
+        </MetricCard>
+        <MetricCard>
+          <MetricLabel>Pending action</MetricLabel>
+          <MetricValue $amber={metrics.pendingActions > 0}>{metrics.pendingActions}</MetricValue>
+          <MetricSub>{metrics.pendingActions === 0 ? "All clear" : "Needs attention"}</MetricSub>
+        </MetricCard>
+      </MetricsGrid>
 
       {/* Properties section */}
-      <div className="rounded-[12px] overflow-hidden" style={surface}>
-        <div className="flex items-center justify-between px-5 py-4" style={divider}>
-          <span className="text-[14px] font-medium" style={{ color: "var(--app-text-1)" }}>Properties</span>
-          <span className="text-[12px]" style={{ color: "var(--app-text-3)" }}>{properties.length} total</span>
-        </div>
+      <SectionCard>
+        <SectionHeader>
+          <SectionTitle>Properties</SectionTitle>
+          <SectionCount>{properties.length} total</SectionCount>
+        </SectionHeader>
         <PropertiesPanel
           initial={properties}
           formOpen={propertyFormOpen}
@@ -164,127 +419,94 @@ export default function DashboardClient({ reservations, properties, metrics }: P
             document.getElementById("reservations-section")?.scrollIntoView({ behavior: "smooth" });
           }}
         />
-      </div>
+      </SectionCard>
 
       {/* Reservations section */}
-      <div id="reservations-section" className="rounded-[12px] overflow-hidden" style={surface}>
-        <div className="flex items-center justify-between px-5 py-4" style={divider}>
-          <div className="flex items-center gap-3">
-            <span className="text-[14px] font-medium" style={{ color: "var(--app-text-1)" }}>Reservations</span>
+      <SectionCard id="reservations-section">
+        <SectionHeader>
+          <SectionHeaderLeft>
+            <SectionTitle>Reservations</SectionTitle>
             {propertyFilter && (
-              <button
-                onClick={() => setPropertyFilter(null)}
-                className="text-[11px] px-2 py-0.5 rounded-full transition"
-                style={{ background: "var(--app-blue-bg)", color: "var(--app-blue-text)" }}
-              >
+              <PropertyFilterTag onClick={() => setPropertyFilter(null)}>
                 {properties.find((p) => p.id === propertyFilter)?.name} ×
-              </button>
+              </PropertyFilterTag>
             )}
-          </div>
-          <span className="text-[12px]" style={{ color: "var(--app-text-3)" }}>{filteredReservations.length} total</span>
-        </div>
+          </SectionHeaderLeft>
+          <SectionCount>{filteredReservations.length} total</SectionCount>
+        </SectionHeader>
 
         {/* Filter pills */}
-        <div className="flex items-center gap-2 px-5 py-3" style={divider}>
+        <FilterRow>
           {filterLabels.map(({ key, label }) => (
-            <button
+            <FilterPill
               key={key}
+              $active={statusFilter === key}
               onClick={() => setStatusFilter(key)}
-              className="px-3 py-[4px] rounded-full text-[12px] transition cursor-pointer"
-              style={
-                statusFilter === key
-                  ? { background: "var(--app-blue)", color: "#ffffff", border: "0.5px solid var(--app-blue)" }
-                  : { background: "var(--app-surface)", color: "var(--app-text-2)", border: "0.5px solid var(--app-border-md)" }
-              }
             >
               {label}
-            </button>
+            </FilterPill>
           ))}
-        </div>
+        </FilterRow>
 
         {filteredReservations.length === 0 ? (
-          <p className="px-5 py-10 text-[13px] text-center" style={{ color: "var(--app-text-3)" }}>
-            No reservations found.
-          </p>
+          <EmptyMsg>No reservations found.</EmptyMsg>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse" style={{ tableLayout: "fixed", minWidth: 600 }}>
-              <thead>
-                <tr style={{ borderBottom: "0.5px solid var(--app-border)", background: "var(--app-surface-2)" }}>
-                  {[
-                    { label: "Guest",     w: "16%" },
-                    { label: "Property",  w: "22%" },
-                    { label: "Check-in",  w: "12%" },
-                    { label: "Check-out", w: "12%", cls: "max-[960px]:hidden" },
-                    { label: "Source",    w: "11%", cls: "max-[800px]:hidden" },
-                    { label: "Status",    w: "16%" },
-                    { label: "Contract",  w: "9%"  },
-                    { label: "",          w: "8%"  },
-                  ].map(({ label, w, cls = "" }) => (
-                    <th
-                      key={label}
-                      className={`px-2.5 py-2.5 text-left text-[11px] font-medium uppercase tracking-[.04em] ${cls}`}
-                      style={{ color: "var(--app-text-2)", width: w }}
-                    >
-                      {label}
-                    </th>
-                  ))}
+          <TableWrap>
+            <Table>
+              <THead>
+                <tr>
+                  <Th $w="16%">Guest</Th>
+                  <Th $w="22%">Property</Th>
+                  <Th $w="12%">Check-in</Th>
+                  <Th $w="12%" $hideBelow={960}>Check-out</Th>
+                  <Th $w="11%" $hideBelow={800}>Source</Th>
+                  <Th $w="16%">Status</Th>
+                  <Th $w="9%">Contract</Th>
+                  <Th $w="8%"></Th>
                 </tr>
-              </thead>
+              </THead>
               <tbody>
                 {filteredReservations.map((r, idx) => (
-                  <tr
+                  <TRow
                     key={r.id}
-                    className="res-table-row cursor-pointer transition"
-                    style={{ borderBottom: idx < filteredReservations.length - 1 ? "0.5px solid var(--app-border)" : "none" }}
-                    onClick={() => window.location.href = `/reservations/${r.id}`}
+                    $last={idx === filteredReservations.length - 1}
+                    onClick={() => router.push(`/reservations/${r.id}`)}
                   >
-                    <td className="px-2.5 py-3">
-                      <span className="block text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap" style={{ color: "var(--app-text-1)" }}>
-                        {r.guests[0]?.fullName ?? "—"}
-                      </span>
-                      {r.guests.length > 1 && (
-                        <span className="block text-[11px]" style={{ color: "var(--app-text-3)" }}>
-                          +{r.guests.length - 1} more
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-2.5 py-3 text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap" style={{ color: "var(--app-text-1)" }}>
+                    <Td>
+                      <CellPrimary>{r.guests[0]?.fullName ?? "—"}</CellPrimary>
+                      {r.guests.length > 1 && <CellSub>+{r.guests.length - 1} more</CellSub>}
+                    </Td>
+                    <Td style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>
                       {r.property.name}
-                    </td>
-                    <td className="px-2.5 py-3 text-[13px] whitespace-nowrap" style={{ color: "var(--app-text-1)" }}>
-                      {fmtDate(r.checkInDate)}
-                    </td>
-                    <td className="max-[960px]:hidden px-2.5 py-3 text-[13px] whitespace-nowrap" style={{ color: "var(--app-text-1)" }}>
-                      {fmtDate(r.checkOutDate)}
-                    </td>
-                    <td className="max-[800px]:hidden px-2.5 py-3 text-[13px]" style={{ color: "var(--app-text-2)" }}>
-                      <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle flex-shrink-0" style={{ background: "var(--app-blue)" }} />
+                    </Td>
+                    <Td style={{ whiteSpace: "nowrap" }}>{fmtDate(r.checkInDate)}</Td>
+                    <Td $hideBelow={960} style={{ whiteSpace: "nowrap" }}>{fmtDate(r.checkOutDate)}</Td>
+                    <Td $hideBelow={800} style={{ color: "var(--app-text-2)" }}>
+                      <SourceDot />
                       {SOURCE_LABEL[r.source] ?? r.source}
-                    </td>
-                    <td className="px-2.5 py-3">{statusBadge(r.status)}</td>
-                    <td className="px-2.5 py-3">
+                    </Td>
+                    <Td>{statusBadge(r.status)}</Td>
+                    <Td>
                       {r.contracts[0]
                         ? contractBadge(r.contracts[0].status)
                         : <span style={{ color: "var(--app-text-3)" }}>—</span>}
-                    </td>
-                    <td className="px-2.5 py-3 text-right">
-                      <Link
+                    </Td>
+                    <Td style={{ textAlign: "right" }}>
+                      <ManageLink
                         href={`/reservations/${r.id}`}
                         onClick={(e) => e.stopPropagation()}
-                        className="text-[12px] font-medium whitespace-nowrap hover:underline"
-                        style={{ color: "var(--app-blue)" }}
                       >
                         Manage →
-                      </Link>
-                    </td>
-                  </tr>
+                      </ManageLink>
+                    </Td>
+                  </TRow>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </Table>
+          </TableWrap>
         )}
-      </div>
-    </div>
+      </SectionCard>
+    </PageWrap>
   );
 }
+

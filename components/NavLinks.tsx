@@ -2,6 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import styled from "styled-components";
+
+const Nav = styled.nav`
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+`;
+
+const NavLink = styled(Link)<{ $active: boolean }>`
+  font-size: 13px;
+  padding-bottom: 2px;
+  text-decoration: none;
+  transition: color 0.15s;
+  color: ${({ $active }) => $active ? "var(--app-text-1)" : "var(--app-text-2)"};
+  font-weight: ${({ $active }) => $active ? 500 : 400};
+  border-bottom: 2px solid ${({ $active }) => $active ? "var(--app-blue)" : "transparent"};
+`;
 
 const links = [
   { href: "/dashboard", label: "Dashboard" },
@@ -13,24 +30,15 @@ export default function NavLinks() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex items-center gap-6">
+    <Nav>
       {links.map(({ href, label, match }) => {
         const active = pathname === href || (match ? pathname.startsWith(match) : false);
         return (
-          <Link
-            key={href}
-            href={href}
-            className="text-[13px] pb-px transition"
-            style={{
-              color: active ? "var(--app-text-1)" : "var(--app-text-2)",
-              fontWeight: active ? 500 : 400,
-              borderBottom: active ? "2px solid var(--app-blue)" : "2px solid transparent",
-            }}
-          >
+          <NavLink key={href} href={href} $active={active}>
             {label}
-          </Link>
+          </NavLink>
         );
       })}
-    </nav>
+    </Nav>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import styled from "styled-components";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -73,60 +74,620 @@ const STATUS_META: Record<string, { label: string; badgeBg: string; badgeColor: 
   draft:           { label: "Draft",           badgeBg: "var(--app-surface-2)", badgeColor: "var(--app-text-2)"     },
 };
 
-function Badge({ status, children }: { status?: string; children?: React.ReactNode }) {
-  const meta = status ? (STATUS_META[status] ?? { label: status, badgeBg: "var(--app-surface-2)", badgeColor: "var(--app-text-2)" }) : null;
+// ── Styled components ────────────────────────────────────────────────────────
+
+const PageWrap = styled.div`
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px 32px;
+`;
+
+const BreadNav = styled.nav`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--app-text-3);
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+`;
+
+const BreadLink = styled(Link)`
+  color: var(--app-text-2);
+  &:hover { text-decoration: underline; }
+`;
+
+const PageHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+`;
+
+const PageTitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+const PageTitle = styled.h1`
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--app-text-1);
+`;
+
+const PageSubtitle = styled.p`
+  font-size: 12px;
+  margin-top: 4px;
+  color: var(--app-text-3);
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const OutlineBtn = styled.button<{ $danger?: boolean; $primary?: boolean }>`
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 0.5px solid ${(p) => p.$danger ? "#F7C1C1" : p.$primary ? "transparent" : "var(--app-border-md)"};
+  background: ${(p) => p.$primary ? "var(--app-blue)" : "var(--app-surface)"};
+  color: ${(p) => p.$danger ? "var(--app-red-text)" : p.$primary ? "#ffffff" : "var(--app-text-1)"};
+  cursor: pointer;
+  transition: opacity 0.15s;
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+const FeedbackBar = styled.div<{ $ok: boolean }>`
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  background: ${(p) => p.$ok ? "var(--app-green-bg)" : "var(--app-red-bg)"};
+  color: ${(p) => p.$ok ? "var(--app-green-text)" : "var(--app-red-text)"};
+`;
+
+const TwoColGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  align-items: start;
+  @media (min-width: 1024px) {
+    grid-template-columns: 1fr 300px;
+  }
+`;
+
+const BadgeSpan = styled.span<{ $bg: string; $color: string }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: ${(p) => p.$bg};
+  color: ${(p) => p.$color};
+`;
+
+// Section components
+const SectionWrap = styled.div`
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  background: var(--app-surface);
+  border: 0.5px solid var(--app-border);
+  &:last-child { margin-bottom: 0; }
+`;
+
+const SectionHead = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 0.5px solid var(--app-border);
+`;
+
+const SectionHeadTitle = styled.span`
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--app-text-1);
+`;
+
+const SectionBody = styled.div`
+  padding: 20px;
+`;
+
+// KV components
+const KvRow = styled.div`
+  padding: 12px 20px;
+  border-bottom: 0.5px solid var(--app-border);
+`;
+
+const KvLabel = styled.p`
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+  color: var(--app-text-3);
+`;
+
+const KvValue = styled.div`
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--app-text-1);
+`;
+
+const KvGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+`;
+
+const KvGridFull = styled.div`
+  grid-column: span 2;
+  padding: 12px 20px;
+`;
+
+// Status pills
+const StatusPillWrap = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+`;
+
+const StatusPill = styled.button<{ $active: boolean; $bg: string; $color: string }>`
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: ${(p) => p.$active ? "default" : "pointer"};
+  background: ${(p) => p.$active ? p.$bg : "var(--app-surface-2)"};
+  color: ${(p) => p.$active ? p.$color : "var(--app-text-3)"};
+  border: ${(p) => p.$active ? "none" : "0.5px solid var(--app-border)"};
+  transition: opacity 0.15s;
+  &:disabled { opacity: 0.6; }
+`;
+
+const SavingText = styled.span`
+  font-size: 11px;
+  color: var(--app-text-3);
+`;
+
+// Guest card
+const GuestList = styled.div`
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const GuestCard = styled.div`
+  border-radius: 10px;
+  padding: 16px;
+  background: var(--app-surface-2);
+`;
+
+const GuestCardHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
+
+const GuestCardLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const Avatar = styled.div`
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+  background: var(--app-blue-bg);
+  color: var(--app-blue-text);
+`;
+
+const GuestName = styled.p`
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--app-text-1);
+`;
+
+const GuestRole = styled.p`
+  font-size: 11px;
+  margin-top: 2px;
+  color: var(--app-text-3);
+`;
+
+const GuestFields = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+`;
+
+const FieldMicroLabel = styled.p`
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+  color: var(--app-text-3);
+`;
+
+const FieldText = styled.p`
+  font-size: 12px;
+  color: var(--app-text-1);
+`;
+
+const DocLink = styled.a`
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--app-blue);
+  &:hover { text-decoration: underline; }
+`;
+
+const EmptyMsg = styled.div`
+  padding: 20px;
+  font-size: 13px;
+  color: var(--app-text-3);
+`;
+
+// Contract
+const ContractFileRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+`;
+
+const ContractFileIcon = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--app-green-bg);
+`;
+
+const ContractFileName = styled.p`
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--app-text-1);
+`;
+
+const ContractFileMeta = styled.p`
+  font-size: 11px;
+  margin-top: 2px;
+  color: var(--app-text-3);
+`;
+
+const SignRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  background: var(--app-surface-2);
+`;
+
+const SignName = styled.p`
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--app-text-1);
+`;
+
+const SignMeta = styled.p`
+  font-size: 11px;
+  margin-top: 2px;
+  color: var(--app-text-3);
+`;
+
+const ContractDivider = styled.div`
+  height: 0.5px;
+  background: var(--app-border);
+  margin: 12px 0;
+`;
+
+const ContractAction = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 0;
+`;
+
+const ContractActionLabel = styled.span`
+  font-size: 12px;
+  color: var(--app-text-2);
+`;
+
+const ContractActionBtn = styled.button`
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--app-blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+  &:hover { text-decoration: underline; }
+  &:disabled { opacity: 0.5; }
+`;
+
+const ContractActionLink = styled.a`
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--app-blue);
+  &:hover { text-decoration: underline; }
+`;
+
+const ContractEmpty = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const ContractEmptyText = styled.p`
+  font-size: 13px;
+  color: var(--app-text-3);
+`;
+
+const GenerateContractBtn = styled.button`
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--app-green-bg);
+  color: var(--app-green-text);
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  &:disabled { opacity: 0.5; }
+`;
+
+// Guest form link
+const LinkBox = styled.div<{ $mt?: boolean }>`
+  border-radius: 10px;
+  padding: 16px;
+  background: var(--app-surface-2);
+  ${(p) => p.$mt ? "margin-top: 12px;" : ""}
+`;
+
+const LinkLabel = styled.p`
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  color: var(--app-text-3);
+`;
+
+const LinkUrl = styled.span`
+  display: block;
+  font-size: 12px;
+  word-break: break-all;
+  margin-bottom: 12px;
+  color: var(--app-blue);
+`;
+
+const LinkFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+`;
+
+const LinkExpiry = styled.span`
+  font-size: 11px;
+  color: var(--app-text-3);
+`;
+
+const CopyBtn = styled.button<{ $copied: boolean }>`
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  border: 0.5px solid var(--app-border-md);
+  background: ${(p) => p.$copied ? "var(--app-green-bg)" : "var(--app-surface)"};
+  color: ${(p) => p.$copied ? "var(--app-green-text)" : "var(--app-text-2)"};
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+`;
+
+const NoLinkWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const NoLinkText = styled.p`
+  font-size: 12px;
+  color: var(--app-text-3);
+`;
+
+const GenerateLinkBtn = styled.button`
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--app-blue);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  &:disabled { opacity: 0.5; }
+`;
+
+// Timeline
+const TimelineItem = styled.div`
+  display: flex;
+  gap: 12px;
+`;
+
+const TimelineSpine = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+`;
+
+const TimelineDot = styled.div<{ $active?: boolean }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 3px;
+  background: ${(p) => p.$active ? "var(--app-green-text)" : "var(--app-border-md)"};
+`;
+
+const TimelineLine = styled.div`
+  width: 1px;
+  flex: 1;
+  margin-top: 4px;
+  background: var(--app-border);
+  min-height: 20px;
+`;
+
+const TimelineContent = styled.div<{ $last?: boolean }>`
+  padding-bottom: ${(p) => p.$last ? "0" : "16px"};
+`;
+
+const TimelineTitle = styled.p`
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--app-text-1);
+`;
+
+const TimelineMeta = styled.p`
+  font-size: 11px;
+  margin-top: 2px;
+  color: var(--app-text-3);
+`;
+
+// Delete zone
+const DeleteZone = styled.div`
+  border-radius: 12px;
+  padding: 16px 20px;
+  background: var(--app-surface);
+  border: 0.5px solid var(--app-border);
+`;
+
+const DeleteConfirmRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const DeleteConfirmText = styled.span`
+  font-size: 12px;
+  flex: 1;
+  color: var(--app-text-2);
+`;
+
+const ConfirmDeleteBtn = styled.button`
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--app-red-text);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  &:disabled { opacity: 0.5; }
+`;
+
+const CancelConfirmBtn = styled.button`
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--app-text-2);
+  background: none;
+  border: none;
+  cursor: pointer;
+`;
+
+const DeleteBtn = styled.button`
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--app-red-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+  &:hover { text-decoration: underline; }
+`;
+
+const EditLink = styled.span`
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--app-blue);
+  cursor: pointer;
+  &:hover { text-decoration: underline; }
+`;
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function Badge({ status, children }: { status?: string; children?: ReactNode }) {
+  const meta = status
+    ? (STATUS_META[status] ?? { label: status, badgeBg: "var(--app-surface-2)", badgeColor: "var(--app-text-2)" })
+    : null;
   return (
-    <span
-      className="inline-flex items-center px-[10px] py-[3px] rounded-[8px] text-[11px] font-medium whitespace-nowrap"
-      style={{ background: meta?.badgeBg ?? "var(--app-surface-2)", color: meta?.badgeColor ?? "var(--app-text-2)" }}
-    >
+    <BadgeSpan $bg={meta?.badgeBg ?? "var(--app-surface-2)"} $color={meta?.badgeColor ?? "var(--app-text-2)"}>
       {meta?.label ?? children}
-    </span>
+    </BadgeSpan>
   );
 }
-
-// ── Section shell ────────────────────────────────────────────────────────────
 
 function Section({ title, aside, noPad, children }: {
   title: string;
-  aside?: React.ReactNode;
+  aside?: ReactNode;
   noPad?: boolean;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <div
-      className="rounded-[12px] overflow-hidden mb-5 last:mb-0"
-      style={{ background: "var(--app-surface)", border: "0.5px solid var(--app-border)" }}
-    >
-      <div
-        className="flex items-center justify-between px-5 py-[14px]"
-        style={{ borderBottom: "0.5px solid var(--app-border)" }}
-      >
-        <span className="text-[13px] font-medium" style={{ color: "var(--app-text-1)" }}>{title}</span>
+    <SectionWrap>
+      <SectionHead>
+        <SectionHeadTitle>{title}</SectionHeadTitle>
         {aside}
-      </div>
-      {noPad ? children : <div className="px-5 py-5">{children}</div>}
-    </div>
+      </SectionHead>
+      {noPad ? children : <SectionBody>{children}</SectionBody>}
+    </SectionWrap>
   );
 }
 
-// ── KV row ───────────────────────────────────────────────────────────────────
-
-function KV({ label, children }: { label: string; children: React.ReactNode }) {
+function KV({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div
-      className="px-5 py-3"
-      style={{ borderBottom: "0.5px solid var(--app-border)" }}
-    >
-      <p className="text-[10px] font-medium uppercase tracking-wide mb-1" style={{ color: "var(--app-text-3)" }}>
-        {label}
-      </p>
-      <div className="text-[13px] font-medium" style={{ color: "var(--app-text-1)" }}>{children}</div>
-    </div>
+    <KvRow>
+      <KvLabel>{label}</KvLabel>
+      <KvValue>{children}</KvValue>
+    </KvRow>
   );
 }
 
-// ── Main component ───────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function ReservationDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -135,20 +696,15 @@ export default function ReservationDetailPage() {
   const [reservation, setReservation] = useState<ReservationDetail | null>(null);
   const [loading, setLoading]         = useState(true);
 
-  // action states
   const [generatingToken,    setGeneratingToken]    = useState(false);
   const [generatingContract, setGeneratingContract] = useState(false);
   const [updatingStatus,     setUpdatingStatus]     = useState(false);
   const [deleting,           setDeleting]           = useState(false);
   const [showDeleteConfirm,  setShowDeleteConfirm]  = useState(false);
 
-  // new link generated
-  const [newLink, setNewLink] = useState<string | null>(null);
-
-  // copy states per url
+  const [newLink,   setNewLink]   = useState<string | null>(null);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
-  // feedback
   const [feedback, setFeedback] = useState<{ text: string; ok: boolean } | null>(null);
 
   function flashFeedback(text: string, ok = true) {
@@ -192,7 +748,6 @@ export default function ReservationDetailPage() {
       const data = await res.json();
       if (data.error) { flashFeedback(`Error: ${data.error}`, false); return; }
       flashFeedback("Contract generated.");
-      // reload reservation to show contract
       const fresh = await fetch(`/api/reservations/${id}`).then((r) => r.json());
       setReservation(fresh);
     } finally {
@@ -223,16 +778,16 @@ export default function ReservationDetailPage() {
     router.push("/dashboard");
   }
 
-  // ── Loading / error ──────────────────────────────────────────────────────
-
   if (loading) return (
-    <div className="p-10 text-[13px] text-center" style={{ color: "var(--app-text-3)" }}>Loading…</div>
+    <PageWrap>
+      <EmptyMsg style={{ textAlign: "center" }}>Loading…</EmptyMsg>
+    </PageWrap>
   );
   if (!reservation) return (
-    <div className="p-10 text-[13px] text-center" style={{ color: "var(--app-red-text)" }}>Reservation not found.</div>
+    <PageWrap>
+      <EmptyMsg style={{ textAlign: "center", color: "var(--app-red-text)" }}>Reservation not found.</EmptyMsg>
+    </PageWrap>
   );
-
-  // ── Derived data ─────────────────────────────────────────────────────────
 
   const latestToken = reservation.guestFormTokens[0] ?? null;
   const activeToken = latestToken && !latestToken.used && !isExpired(latestToken.expiresAt) ? latestToken : null;
@@ -241,7 +796,6 @@ export default function ReservationDetailPage() {
   const guestLinkUrl = (token: string) =>
     typeof window !== "undefined" ? `${window.location.origin}/guest-form/${token}` : "";
 
-  // timeline events — newest first
   const timelineEvents: { title: string; time: string }[] = [
     { title: "Reservation created", time: reservation.createdAt },
     ...(latestToken ? [{ title: "Guest link sent", time: latestToken.createdAt }] : []),
@@ -250,131 +804,71 @@ export default function ReservationDetailPage() {
     ...(contract?.signatures.map((s) => ({ title: `Signed by ${s.guest.fullName}`, time: s.signedAt })) ?? []),
   ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 
-  // ── Render ───────────────────────────────────────────────────────────────
-
   return (
-    <div
-      className="mx-auto px-4 py-7"
-      style={{ maxWidth: 1100 }}
-    >
-
+    <PageWrap>
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-[12px] mb-5 flex-wrap" style={{ color: "var(--app-text-3)" }}>
-        <Link href="/dashboard" className="hover:underline" style={{ color: "var(--app-text-2)" }}>Dashboard</Link>
+      <BreadNav>
+        <BreadLink href="/dashboard">Dashboard</BreadLink>
         <span>/</span>
-        <Link href="/dashboard" className="hover:underline" style={{ color: "var(--app-text-2)" }}>Reservations</Link>
+        <BreadLink href="/dashboard">Reservations</BreadLink>
         <span>/</span>
         <span>{reservation.property.name}</span>
-      </nav>
+      </BreadNav>
 
       {/* Page header */}
-      <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
+      <PageHeader>
         <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-[20px] font-medium" style={{ color: "var(--app-text-1)" }}>
-              {reservation.property.name}
-            </h1>
+          <PageTitleRow>
+            <PageTitle>{reservation.property.name}</PageTitle>
             <Badge status={reservation.status} />
-          </div>
-          <p className="text-[12px] mt-1" style={{ color: "var(--app-text-3)" }}>
+          </PageTitleRow>
+          <PageSubtitle>
             Reservation #{reservation.id.slice(0, 8).toUpperCase()} · Created {fmtDate(reservation.createdAt)}
-          </p>
+          </PageSubtitle>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={handleGenerateToken}
-            disabled={generatingToken}
-            className="px-[14px] py-[7px] rounded-[8px] text-[13px] font-medium transition disabled:opacity-50"
-            style={{
-              background: "var(--app-surface)",
-              color: "var(--app-text-1)",
-              border: "0.5px solid var(--app-border-md)",
-            }}
-          >
+        <HeaderActions>
+          <OutlineBtn onClick={handleGenerateToken} disabled={generatingToken}>
             {generatingToken ? "Generating…" : "Regenerate link"}
-          </button>
+          </OutlineBtn>
 
-          <button
-            onClick={handleGenerateContract}
-            disabled={generatingContract}
-            className="px-[14px] py-[7px] rounded-[8px] text-[13px] font-medium transition disabled:opacity-50"
-            style={{ background: "var(--app-blue)", color: "#ffffff" }}
-          >
+          <OutlineBtn $primary onClick={handleGenerateContract} disabled={generatingContract}>
             {generatingContract ? "Generating…" : "Generate contract"}
-          </button>
+          </OutlineBtn>
 
           {reservation.status !== "cancelled" ? (
-            <button
-              onClick={() => handleStatusChange("cancelled")}
-              disabled={updatingStatus}
-              className="px-[14px] py-[7px] rounded-[8px] text-[13px] font-medium transition disabled:opacity-50"
-              style={{
-                color: "var(--app-red-text)",
-                border: "0.5px solid #F7C1C1",
-                background: "var(--app-surface)",
-              }}
-            >
+            <OutlineBtn $danger onClick={() => handleStatusChange("cancelled")} disabled={updatingStatus}>
               Cancel
-            </button>
+            </OutlineBtn>
           ) : (
-            <button
-              onClick={() => handleStatusChange("pending")}
-              disabled={updatingStatus}
-              className="px-[14px] py-[7px] rounded-[8px] text-[13px] font-medium transition disabled:opacity-50"
-              style={{
-                color: "var(--app-text-2)",
-                border: "0.5px solid var(--app-border-md)",
-                background: "var(--app-surface)",
-              }}
-            >
+            <OutlineBtn onClick={() => handleStatusChange("pending")} disabled={updatingStatus}>
               Reopen
-            </button>
+            </OutlineBtn>
           )}
-        </div>
-      </div>
+        </HeaderActions>
+      </PageHeader>
 
       {/* Feedback toast */}
-      {feedback && (
-        <div
-          className="mb-4 px-4 py-2.5 rounded-[8px] text-[13px] font-medium"
-          style={{
-            background: feedback.ok ? "var(--app-green-bg)" : "var(--app-red-bg)",
-            color: feedback.ok ? "var(--app-green-text)" : "var(--app-red-text)",
-          }}
-        >
-          {feedback.text}
-        </div>
-      )}
+      {feedback && <FeedbackBar $ok={feedback.ok}>{feedback.text}</FeedbackBar>}
 
       {/* Two-column layout */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_300px] items-start">
+      <TwoColGrid>
 
         {/* ── LEFT ─────────────────────────────────────────────────────── */}
         <div>
 
           {/* Reservation details */}
-          <Section title="Reservation details" noPad aside={
-            <span
-              className="text-[12px] font-medium cursor-pointer hover:underline"
-              style={{ color: "var(--app-blue)" }}
-            >
-              Edit
-            </span>
-          }>
-            <div className="grid grid-cols-2 sm:grid-cols-2">
+          <Section title="Reservation details" noPad aside={<EditLink>Edit</EditLink>}>
+            <KvGrid>
               <KV label="Property">{reservation.property.name}</KV>
               <KV label="Source">{reservation.source.charAt(0).toUpperCase() + reservation.source.slice(1)}</KV>
               <KV label="Check-in">{fmtDate(reservation.checkInDate)}</KV>
               <KV label="Check-out">{fmtDate(reservation.checkOutDate)}</KV>
               <KV label="Duration">{nights(reservation.checkInDate, reservation.checkOutDate)}</KV>
               <KV label="Guests">{reservation.guests.length} guest{reservation.guests.length !== 1 ? "s" : ""}</KV>
-              {/* Status selector full width */}
-              <div className="col-span-2 px-5 py-3">
-                <p className="text-[10px] font-medium uppercase tracking-wide mb-2" style={{ color: "var(--app-text-3)" }}>
-                  Status
-                </p>
-                <div className="flex items-center gap-2 flex-wrap">
+              <KvGridFull>
+                <KvLabel>Status</KvLabel>
+                <StatusPillWrap>
                   {(
                     [
                       { value: "pending",   label: "Pending"   },
@@ -386,117 +880,86 @@ export default function ReservationDetailPage() {
                     const isActive = reservation.status === value;
                     const meta = STATUS_META[value];
                     return (
-                      <button
+                      <StatusPill
                         key={value}
+                        $active={isActive}
+                        $bg={meta.badgeBg}
+                        $color={meta.badgeColor}
                         onClick={() => !isActive && handleStatusChange(value)}
                         disabled={updatingStatus}
-                        className="px-[10px] py-[3px] rounded-[8px] text-[11px] font-medium transition disabled:opacity-60"
-                        style={{
-                          background: isActive ? meta.badgeBg : "var(--app-surface-2)",
-                          color: isActive ? meta.badgeColor : "var(--app-text-3)",
-                          border: isActive ? "none" : "0.5px solid var(--app-border)",
-                          cursor: isActive ? "default" : "pointer",
-                        }}
                       >
                         {label}
-                      </button>
+                      </StatusPill>
                     );
                   })}
-                  {updatingStatus && (
-                    <span className="text-[11px]" style={{ color: "var(--app-text-3)" }}>Saving…</span>
-                  )}
-                </div>
-              </div>
-            </div>
+                  {updatingStatus && <SavingText>Saving…</SavingText>}
+                </StatusPillWrap>
+              </KvGridFull>
+            </KvGrid>
           </Section>
 
           {/* Guests */}
           <Section
             title="Guests"
             noPad
-            aside={
-              <Badge>{reservation.guests.length} submitted</Badge>
-            }
+            aside={<Badge>{reservation.guests.length} submitted</Badge>}
           >
             {reservation.guests.length === 0 ? (
-              <div className="px-5 py-5 text-[13px]" style={{ color: "var(--app-text-3)" }}>
-                No guests submitted yet.
-              </div>
+              <EmptyMsg>No guests submitted yet.</EmptyMsg>
             ) : (
-              <div className="px-5 py-5 space-y-3">
+              <GuestList>
                 {reservation.guests.map((g, i) => (
-                  <div
-                    key={g.id}
-                    className="rounded-[10px] p-4"
-                    style={{ background: "var(--app-surface-2)" }}
-                  >
-                    {/* Guest header */}
-                    <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-[12px] font-semibold flex-shrink-0"
-                          style={{ background: "var(--app-blue-bg)", color: "var(--app-blue-text)" }}
-                        >
-                          {initials(g.fullName)}
-                        </div>
+                  <GuestCard key={g.id}>
+                    <GuestCardHeader>
+                      <GuestCardLeft>
+                        <Avatar>{initials(g.fullName)}</Avatar>
                         <div>
-                          <p className="text-[13px] font-medium" style={{ color: "var(--app-text-1)" }}>{g.fullName}</p>
-                          <p className="text-[11px] mt-0.5" style={{ color: "var(--app-text-3)" }}>
-                            {i === 0 ? "Primary guest" : "Additional guest"}
-                          </p>
+                          <GuestName>{g.fullName}</GuestName>
+                          <GuestRole>{i === 0 ? "Primary guest" : "Additional guest"}</GuestRole>
                         </div>
-                      </div>
+                      </GuestCardLeft>
                       {g.documentFileUrl && (
-                        <Badge>
-                          <span style={{ color: "var(--app-green-text)" }}>Verified</span>
-                        </Badge>
+                        <BadgeSpan $bg="var(--app-surface-2)" $color="var(--app-green-text)">Verified</BadgeSpan>
                       )}
-                    </div>
+                    </GuestCardHeader>
 
-                    {/* Guest fields */}
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <GuestFields>
                       {g.email && (
                         <div>
-                          <p className="text-[10px] font-medium uppercase tracking-wide mb-0.5" style={{ color: "var(--app-text-3)" }}>Email</p>
-                          <p className="text-[12px]" style={{ color: "var(--app-text-1)" }}>{g.email}</p>
+                          <FieldMicroLabel>Email</FieldMicroLabel>
+                          <FieldText>{g.email}</FieldText>
                         </div>
                       )}
                       {g.phone && (
                         <div>
-                          <p className="text-[10px] font-medium uppercase tracking-wide mb-0.5" style={{ color: "var(--app-text-3)" }}>Phone</p>
-                          <p className="text-[12px]" style={{ color: "var(--app-text-1)" }}>{g.phone}</p>
+                          <FieldMicroLabel>Phone</FieldMicroLabel>
+                          <FieldText>{g.phone}</FieldText>
                         </div>
                       )}
                       {g.documentType && (
                         <div>
-                          <p className="text-[10px] font-medium uppercase tracking-wide mb-0.5" style={{ color: "var(--app-text-3)" }}>Document type</p>
-                          <p className="text-[12px] capitalize" style={{ color: "var(--app-text-1)" }}>
+                          <FieldMicroLabel>Document type</FieldMicroLabel>
+                          <FieldText style={{ textTransform: "capitalize" }}>
                             {g.documentType.replace("_", " ")}
-                          </p>
+                          </FieldText>
                         </div>
                       )}
                       {g.documentNumber && (
                         <div>
-                          <p className="text-[10px] font-medium uppercase tracking-wide mb-0.5" style={{ color: "var(--app-text-3)" }}>ID number</p>
-                          <p className="text-[12px]" style={{ color: "var(--app-text-1)" }}>{g.documentNumber}</p>
+                          <FieldMicroLabel>ID number</FieldMicroLabel>
+                          <FieldText>{g.documentNumber}</FieldText>
                         </div>
                       )}
-                    </div>
+                    </GuestFields>
 
                     {g.documentFileUrl && (
-                      <a
-                        href={g.documentFileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-3 inline-block text-[12px] font-medium hover:underline"
-                        style={{ color: "var(--app-blue)" }}
-                      >
+                      <DocLink href={g.documentFileUrl} target="_blank" rel="noreferrer">
                         View document →
-                      </a>
+                      </DocLink>
                     )}
-                  </div>
+                  </GuestCard>
                 ))}
-              </div>
+              </GuestList>
             )}
           </Section>
 
@@ -511,90 +974,57 @@ export default function ReservationDetailPage() {
             aside={contract ? <Badge status={contract.status} /> : undefined}
           >
             {!contract ? (
-              <div className="space-y-3">
-                <p className="text-[13px]" style={{ color: "var(--app-text-3)" }}>No contract generated yet.</p>
+              <ContractEmpty>
+                <ContractEmptyText>No contract generated yet.</ContractEmptyText>
                 {reservation.guests.length > 0 && (
-                  <button
-                    onClick={handleGenerateContract}
-                    disabled={generatingContract}
-                    className="px-[14px] py-[7px] rounded-[8px] text-[13px] font-medium transition disabled:opacity-50"
-                    style={{ background: "var(--app-green-bg)", color: "var(--app-green-text)" }}
-                  >
+                  <GenerateContractBtn onClick={handleGenerateContract} disabled={generatingContract}>
                     {generatingContract ? "Generating…" : "Generate contract"}
-                  </button>
+                  </GenerateContractBtn>
                 )}
-              </div>
+              </ContractEmpty>
             ) : (
               <div>
-                {/* File row */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div
-                    className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0"
-                    style={{ background: "var(--app-green-bg)" }}
-                  >
+                <ContractFileRow>
+                  <ContractFileIcon>
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                       <rect x="4" y="2" width="12" height="16" rx="2" fill="var(--app-green-text)" opacity="0.18"/>
                       <path d="M7 7h6M7 10h6M7 13h4" stroke="var(--app-green-text)" strokeWidth="1.5" strokeLinecap="round"/>
                     </svg>
-                  </div>
+                  </ContractFileIcon>
                   <div>
-                    <p className="text-[13px] font-medium" style={{ color: "var(--app-text-1)" }}>Rental Contract</p>
-                    <p className="text-[11px] mt-0.5" style={{ color: "var(--app-text-3)" }}>
-                      Generated {fmtDate(contract.createdAt)}
-                    </p>
+                    <ContractFileName>Rental Contract</ContractFileName>
+                    <ContractFileMeta>Generated {fmtDate(contract.createdAt)}</ContractFileMeta>
                   </div>
-                </div>
+                </ContractFileRow>
 
-                {/* Signatures */}
                 {contract.signatures.map((sig) => (
-                  <div
-                    key={sig.id}
-                    className="flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 mb-3"
-                    style={{ background: "var(--app-surface-2)" }}
-                  >
+                  <SignRow key={sig.id}>
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
                       <path d="M3 13c2-4 4-7 6-7s2 3 3 3 2-2 3-3" stroke="var(--app-blue)" strokeWidth="1.5" strokeLinecap="round"/>
                     </svg>
                     <div>
-                      <p className="text-[12px] font-medium" style={{ color: "var(--app-text-1)" }}>
-                        Signed by {sig.guest.fullName}
-                      </p>
-                      <p className="text-[11px] mt-0.5" style={{ color: "var(--app-text-3)" }}>
-                        {fmtDateTime(sig.signedAt)}
-                      </p>
+                      <SignName>Signed by {sig.guest.fullName}</SignName>
+                      <SignMeta>{fmtDateTime(sig.signedAt)}</SignMeta>
                     </div>
-                  </div>
+                  </SignRow>
                 ))}
 
-                {/* Divider */}
-                <div style={{ height: "0.5px", background: "var(--app-border)", margin: "12px 0" }} />
+                <ContractDivider />
 
-                {/* Actions */}
                 {contract.pdfUrl && (
-                  <div className="flex items-center justify-between py-[7px]">
-                    <span className="text-[12px]" style={{ color: "var(--app-text-2)" }}>Download PDF</span>
-                    <a
-                      href={contract.pdfUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[12px] font-medium hover:underline"
-                      style={{ color: "var(--app-blue)" }}
-                    >
+                  <ContractAction>
+                    <ContractActionLabel>Download PDF</ContractActionLabel>
+                    <ContractActionLink href={contract.pdfUrl} target="_blank" rel="noreferrer">
                       Download →
-                    </a>
-                  </div>
+                    </ContractActionLink>
+                  </ContractAction>
                 )}
-                <div className="flex items-center justify-between py-[7px]">
-                  <span className="text-[12px]" style={{ color: "var(--app-text-2)" }}>Regenerate contract</span>
-                  <button
-                    onClick={handleGenerateContract}
-                    disabled={generatingContract}
-                    className="text-[12px] font-medium hover:underline disabled:opacity-50"
-                    style={{ color: "var(--app-blue)" }}
-                  >
+                <ContractAction>
+                  <ContractActionLabel>Regenerate contract</ContractActionLabel>
+                  <ContractActionBtn onClick={handleGenerateContract} disabled={generatingContract}>
                     {generatingContract ? "Generating…" : "Regenerate"}
-                  </button>
-                </div>
+                  </ContractActionBtn>
+                </ContractAction>
               </div>
             )}
           </Section>
@@ -604,167 +1034,94 @@ export default function ReservationDetailPage() {
             title="Guest form link"
             aside={
               activeToken
-                ? <Badge><span style={{ color: "var(--app-green-text)" }}>Active</span></Badge>
+                ? <BadgeSpan $bg="var(--app-surface-2)" $color="var(--app-green-text)">Active</BadgeSpan>
                 : latestToken
                   ? <Badge>Used</Badge>
                   : undefined
             }
           >
-            {/* Active token display */}
             {activeToken && (
-              <div
-                className="rounded-[10px] p-4"
-                style={{ background: "var(--app-surface-2)" }}
-              >
-                <p className="text-[10px] font-medium uppercase tracking-wide mb-1.5" style={{ color: "var(--app-text-3)" }}>
-                  Shareable link
-                </p>
-                <span
-                  className="block text-[12px] break-all mb-3"
-                  style={{ color: "var(--app-blue)" }}
-                >
-                  {guestLinkUrl(activeToken.token)}
-                </span>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px]" style={{ color: "var(--app-text-3)" }}>
-                    Expires {fmtDate(activeToken.expiresAt)}
-                  </span>
-                  <button
+              <LinkBox>
+                <LinkLabel>Shareable link</LinkLabel>
+                <LinkUrl>{guestLinkUrl(activeToken.token)}</LinkUrl>
+                <LinkFooter>
+                  <LinkExpiry>Expires {fmtDate(activeToken.expiresAt)}</LinkExpiry>
+                  <CopyBtn
+                    $copied={copiedUrl === guestLinkUrl(activeToken.token)}
                     onClick={() => copyUrl(guestLinkUrl(activeToken.token))}
-                    className="text-[11px] font-medium px-3 py-1 rounded-[6px] transition flex-shrink-0"
-                    style={{
-                      background: copiedUrl === guestLinkUrl(activeToken.token) ? "var(--app-green-bg)" : "var(--app-surface)",
-                      color: copiedUrl === guestLinkUrl(activeToken.token) ? "var(--app-green-text)" : "var(--app-text-2)",
-                      border: "0.5px solid var(--app-border-md)",
-                    }}
                   >
                     {copiedUrl === guestLinkUrl(activeToken.token) ? "Copied!" : "Copy link"}
-                  </button>
-                </div>
-              </div>
+                  </CopyBtn>
+                </LinkFooter>
+              </LinkBox>
             )}
 
-            {/* New link (just generated) */}
             {newLink && (
-              <div
-                className={`rounded-[10px] p-4 ${activeToken ? "mt-3" : ""}`}
-                style={{ background: "var(--app-surface-2)" }}
-              >
-                <p className="text-[10px] font-medium uppercase tracking-wide mb-1.5" style={{ color: "var(--app-text-3)" }}>
-                  New link
-                </p>
-                <span
-                  className="block text-[12px] break-all mb-3"
-                  style={{ color: "var(--app-blue)" }}
-                >
-                  {newLink}
-                </span>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px]" style={{ color: "var(--app-text-3)" }}>Valid for 72 hours</span>
-                  <button
-                    onClick={() => copyUrl(newLink)}
-                    className="text-[11px] font-medium px-3 py-1 rounded-[6px] transition flex-shrink-0"
-                    style={{
-                      background: copiedUrl === newLink ? "var(--app-green-bg)" : "var(--app-surface)",
-                      color: copiedUrl === newLink ? "var(--app-green-text)" : "var(--app-text-2)",
-                      border: "0.5px solid var(--app-border-md)",
-                    }}
-                  >
+              <LinkBox $mt={!!activeToken}>
+                <LinkLabel>New link</LinkLabel>
+                <LinkUrl>{newLink}</LinkUrl>
+                <LinkFooter>
+                  <LinkExpiry>Valid for 72 hours</LinkExpiry>
+                  <CopyBtn $copied={copiedUrl === newLink} onClick={() => copyUrl(newLink)}>
                     {copiedUrl === newLink ? "Copied!" : "Copy link"}
-                  </button>
-                </div>
-              </div>
+                  </CopyBtn>
+                </LinkFooter>
+              </LinkBox>
             )}
 
-            {/* No active token and no new link */}
             {!activeToken && !newLink && (
-              <div className="space-y-2">
+              <NoLinkWrap>
                 {latestToken && (
-                  <p className="text-[12px]" style={{ color: "var(--app-text-3)" }}>
+                  <NoLinkText>
                     {latestToken.used ? "Previous link was already used." : "Previous link has expired."}
-                  </p>
+                  </NoLinkText>
                 )}
-                <button
-                  onClick={handleGenerateToken}
-                  disabled={generatingToken}
-                  className="px-[14px] py-[7px] rounded-[8px] text-[13px] font-medium transition disabled:opacity-50"
-                  style={{ background: "var(--app-blue)", color: "#ffffff" }}
-                >
+                <GenerateLinkBtn onClick={handleGenerateToken} disabled={generatingToken}>
                   {generatingToken ? "Generating…" : "Generate guest form link"}
-                </button>
-              </div>
+                </GenerateLinkBtn>
+              </NoLinkWrap>
             )}
           </Section>
 
           {/* Activity timeline */}
           <Section title="Activity">
-            <div className="space-y-0">
+            <div>
               {timelineEvents.map((evt, i) => (
-                <div key={i} className="flex gap-3">
-                  {/* Spine */}
-                  <div className="flex flex-col items-center flex-shrink-0">
-                    <div
-                      className="w-2 h-2 rounded-full mt-[3px]"
-                      style={{ background: i === 0 ? "var(--app-green-text)" : "var(--app-border-md)" }}
-                    />
-                    {i < timelineEvents.length - 1 && (
-                      <div
-                        className="w-px flex-1 mt-1"
-                        style={{ background: "var(--app-border)", minHeight: 20 }}
-                      />
-                    )}
-                  </div>
-                  {/* Content */}
-                  <div className={`pb-4 ${i === timelineEvents.length - 1 ? "pb-0" : ""}`}>
-                    <p className="text-[12px] font-medium" style={{ color: "var(--app-text-1)" }}>{evt.title}</p>
-                    <p className="text-[11px] mt-0.5" style={{ color: "var(--app-text-3)" }}>
-                      {fmtDateTime(evt.time)}
-                    </p>
-                  </div>
-                </div>
+                <TimelineItem key={i}>
+                  <TimelineSpine>
+                    <TimelineDot $active={i === 0} />
+                    {i < timelineEvents.length - 1 && <TimelineLine />}
+                  </TimelineSpine>
+                  <TimelineContent $last={i === timelineEvents.length - 1}>
+                    <TimelineTitle>{evt.title}</TimelineTitle>
+                    <TimelineMeta>{fmtDateTime(evt.time)}</TimelineMeta>
+                  </TimelineContent>
+                </TimelineItem>
               ))}
             </div>
           </Section>
 
           {/* Delete zone */}
-          <div
-            className="rounded-[12px] px-5 py-4"
-            style={{ background: "var(--app-surface)", border: "0.5px solid var(--app-border)" }}
-          >
+          <DeleteZone>
             {showDeleteConfirm ? (
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[12px] flex-1" style={{ color: "var(--app-text-2)" }}>
-                  Delete this reservation permanently?
-                </span>
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="px-3 py-[5px] rounded-[8px] text-[12px] font-medium transition disabled:opacity-50"
-                  style={{ background: "var(--app-red-text)", color: "#ffffff" }}
-                >
+              <DeleteConfirmRow>
+                <DeleteConfirmText>Delete this reservation permanently?</DeleteConfirmText>
+                <ConfirmDeleteBtn onClick={handleDelete} disabled={deleting}>
                   {deleting ? "Deleting…" : "Yes, delete"}
-                </button>
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="px-3 py-[5px] rounded-[8px] text-[12px] transition"
-                  style={{ color: "var(--app-text-2)" }}
-                >
+                </ConfirmDeleteBtn>
+                <CancelConfirmBtn onClick={() => setShowDeleteConfirm(false)}>
                   Cancel
-                </button>
-              </div>
+                </CancelConfirmBtn>
+              </DeleteConfirmRow>
             ) : (
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="text-[12px] font-medium transition hover:underline"
-                style={{ color: "var(--app-red-text)" }}
-              >
+              <DeleteBtn onClick={() => setShowDeleteConfirm(true)}>
                 Delete reservation
-              </button>
+              </DeleteBtn>
             )}
-          </div>
+          </DeleteZone>
 
         </div>
-      </div>
-    </div>
+      </TwoColGrid>
+    </PageWrap>
   );
 }

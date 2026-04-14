@@ -385,6 +385,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   User: 'User',
+  ContractTemplate: 'ContractTemplate',
   Property: 'Property',
   Reservation: 'Reservation',
   Guest: 'Guest',
@@ -406,7 +407,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "property" | "reservation" | "guest" | "contract" | "signature" | "guestFormToken"
+    modelProps: "user" | "contractTemplate" | "property" | "reservation" | "guest" | "contract" | "signature" | "guestFormToken"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -481,6 +482,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserCountAggregateOutputType> | number
+        }
+      }
+    }
+    ContractTemplate: {
+      payload: Prisma.$ContractTemplatePayload<ExtArgs>
+      fields: Prisma.ContractTemplateFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ContractTemplateFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContractTemplatePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ContractTemplateFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContractTemplatePayload>
+        }
+        findFirst: {
+          args: Prisma.ContractTemplateFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContractTemplatePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ContractTemplateFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContractTemplatePayload>
+        }
+        findMany: {
+          args: Prisma.ContractTemplateFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContractTemplatePayload>[]
+        }
+        create: {
+          args: Prisma.ContractTemplateCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContractTemplatePayload>
+        }
+        createMany: {
+          args: Prisma.ContractTemplateCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ContractTemplateCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContractTemplatePayload>[]
+        }
+        delete: {
+          args: Prisma.ContractTemplateDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContractTemplatePayload>
+        }
+        update: {
+          args: Prisma.ContractTemplateUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContractTemplatePayload>
+        }
+        deleteMany: {
+          args: Prisma.ContractTemplateDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ContractTemplateUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ContractTemplateUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContractTemplatePayload>[]
+        }
+        upsert: {
+          args: Prisma.ContractTemplateUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContractTemplatePayload>
+        }
+        aggregate: {
+          args: Prisma.ContractTemplateAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateContractTemplate>
+        }
+        groupBy: {
+          args: Prisma.ContractTemplateGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ContractTemplateGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ContractTemplateCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ContractTemplateCountAggregateOutputType> | number
         }
       }
     }
@@ -980,6 +1055,19 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
+export const ContractTemplateScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  name: 'name',
+  html: 'html',
+  isDefault: 'isDefault',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ContractTemplateScalarFieldEnum = (typeof ContractTemplateScalarFieldEnum)[keyof typeof ContractTemplateScalarFieldEnum]
+
+
 export const PropertyScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -1235,6 +1323,7 @@ export type PrismaClientOptions = ({
 }
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
+  contractTemplate?: Prisma.ContractTemplateOmit
   property?: Prisma.PropertyOmit
   reservation?: Prisma.ReservationOmit
   guest?: Prisma.GuestOmit

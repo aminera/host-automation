@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import styled, { css } from "styled-components";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,16 +36,16 @@ const STATUS_META: Record<string, { label: string; bg: string; color: string }> 
 };
 
 const CONTRACT_META: Record<string, { label: string; bg: string; color: string }> = {
-  draft:  { label: "Draft",  bg: "var(--app-surface-2)", color: "var(--app-text-3)"  },
+  draft:  { label: "Draft",  bg: "var(--app-surface-2)", color: "var(--app-text-3)"     },
   signed: { label: "Signed", bg: "var(--app-green-bg)",  color: "var(--app-green-text)" },
   sent:   { label: "Sent",   bg: "var(--app-blue-bg)",   color: "var(--app-blue-text)"  },
 };
 
 const PILLS = [
-  { value: "",               label: "All"                },
-  { value: "pending",        label: "Pending"            },
-  { value: "guest_submitted",label: "Guest submitted"    },
-  { value: "_awaiting",      label: "Awaiting signature" },
+  { value: "",                label: "All"                },
+  { value: "pending",         label: "Pending"            },
+  { value: "guest_submitted", label: "Guest submitted"    },
+  { value: "_awaiting",       label: "Awaiting signature" },
 ];
 
 type SortCol = "property" | "guest" | "checkIn" | "checkOut";
@@ -58,31 +59,393 @@ function fmtDate(iso: string) {
   });
 }
 
+// ── Styled components ────────────────────────────────────────────────────────
+
+const PageWrap = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.75rem 2rem;
+`;
+
+const PageHeaderRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+`;
+
+const PageTitle = styled.h1`
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--app-text-1);
+`;
+
+const PageSubtitle = styled.p`
+  font-size: 12px;
+  margin-top: 0.125rem;
+  color: var(--app-text-3);
+`;
+
+const PrimaryLink = styled(Link)`
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--app-blue);
+  color: #ffffff;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+  &:hover { opacity: 0.9; }
+`;
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+
+  @media (max-width: 640px) { grid-template-columns: repeat(2, 1fr); }
+`;
+
+const StatCard = styled.div`
+  background: var(--app-surface-2);
+  border-radius: 8px;
+  padding: 14px 16px;
+`;
+
+const StatLabel = styled.p`
+  font-size: 11px;
+  margin-bottom: 6px;
+  color: var(--app-text-2);
+`;
+
+const StatValue = styled.p<{ $amber?: boolean; $red?: boolean }>`
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1;
+  margin-bottom: 4px;
+  color: ${({ $amber, $red }) => $amber ? "var(--app-amber-text)" : $red ? "var(--app-red-text)" : "var(--app-text-1)"};
+`;
+
+const StatSub = styled.p`
+  font-size: 11px;
+  color: var(--app-text-3);
+`;
+
+const SectionCard = styled.div`
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--app-surface);
+  border: 0.5px solid var(--app-border);
+`;
+
+const Toolbar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  flex-wrap: wrap;
+  border-bottom: 0.5px solid var(--app-border);
+`;
+
+const SearchWrap = styled.div`
+  position: relative;
+  flex: 1;
+  min-width: 160px;
+`;
+
+const SearchIconSvg = styled.svg`
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--app-text-3);
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--app-surface-2);
+  border: 0.5px solid var(--app-border-md);
+  color: var(--app-text-1);
+  border-radius: 8px;
+  font-size: 13px;
+  padding: 7px 10px 7px 30px;
+  outline: none;
+`;
+
+const FilterSelect = styled.select`
+  background: var(--app-surface-2);
+  border: 0.5px solid var(--app-border-md);
+  color: var(--app-text-1);
+  border-radius: 8px;
+  font-size: 13px;
+  padding: 7px 10px;
+  outline: none;
+`;
+
+const PillRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px;
+  flex-wrap: wrap;
+  border-bottom: 0.5px solid var(--app-border);
+`;
+
+const Pill = styled.button<{ $active: boolean }>`
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  background: ${({ $active }) => $active ? "var(--app-blue)"  : "var(--app-surface)"};
+  color:      ${({ $active }) => $active ? "#ffffff"          : "var(--app-text-2)"};
+  border:     0.5px solid ${({ $active }) => $active ? "var(--app-blue)" : "var(--app-border-md)"};
+`;
+
+const PillCount = styled.span`
+  font-size: 10px;
+  opacity: 0.75;
+  margin-left: 3px;
+`;
+
+const DesktopSection = styled.div`
+  display: none;
+  overflow-x: auto;
+
+  @media (min-width: 640px) { display: block; }
+`;
+
+const MobileSection = styled.div`
+  display: block;
+
+  @media (min-width: 640px) { display: none; }
+`;
+
+const TableEl = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  min-width: 600px;
+`;
+
+const THeadEl = styled.thead`
+  background: var(--app-surface-2);
+  border-bottom: 0.5px solid var(--app-border);
+`;
+
+const ThEl = styled.th<{ $w?: string; $right?: boolean; $sort?: boolean; $hideBelow?: number }>`
+  padding: 10px;
+  text-align: ${({ $right }) => $right ? "right" : "left"};
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--app-text-2);
+  width: ${({ $w }) => $w ?? "auto"};
+  ${({ $sort }) => $sort && css`cursor: pointer; user-select: none; &:hover { opacity: 0.75; }`}
+  ${({ $hideBelow }) => $hideBelow && css`@media (max-width: ${$hideBelow}px) { display: none; }`}
+`;
+
+const TdEl = styled.td<{ $hideBelow?: number }>`
+  padding: 10px;
+  font-size: 13px;
+  color: var(--app-text-1);
+  ${({ $hideBelow }) => $hideBelow && css`@media (max-width: ${$hideBelow}px) { display: none; }`}
+`;
+
+const CellPrimary = styled.span`
+  display: block;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const CellSub = styled.span`
+  display: block;
+  font-size: 11px;
+  color: var(--app-text-3);
+`;
+
+const SourceDot = styled.span`
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+  flex-shrink: 0;
+  background: var(--app-blue);
+`;
+
+const ManageLink = styled(Link)`
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--app-blue);
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+`;
+
+const BadgeSpan = styled.span<{ $bg: string; $color: string }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: ${({ $bg }) => $bg};
+  color: ${({ $color }) => $color};
+`;
+
+const MobileCardWrap = styled.div<{ $last: boolean }>`
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: ${({ $last }) => $last ? "none" : "0.5px solid var(--app-border)"};
+  &:hover { background: var(--app-surface-2); }
+`;
+
+const MobileCardTop = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+`;
+
+const MobileCardInfo = styled.div`
+  min-width: 0;
+`;
+
+const MobileCardName = styled.p`
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--app-text-1);
+`;
+
+const MobileCardGuest = styled.p`
+  font-size: 12px;
+  margin-top: 2px;
+  color: var(--app-text-2);
+`;
+
+const MobileCardBadges = styled.div`
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+`;
+
+const MobileCardFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--app-text-3);
+`;
+
+const SectionFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  border-top: 0.5px solid var(--app-border);
+`;
+
+const FooterCount = styled.span`
+  font-size: 12px;
+  color: var(--app-text-3);
+`;
+
+const PaginationRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const PageBtnEl = styled.button<{ $active?: boolean }>`
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+  background: ${({ $active }) => $active ? "var(--app-blue)"  : "var(--app-surface)"};
+  color:      ${({ $active }) => $active ? "#ffffff"          : "var(--app-text-2)"};
+  border:     0.5px solid ${({ $active }) => $active ? "var(--app-blue)" : "var(--app-border-md)"};
+  &:disabled { opacity: 0.3; cursor: not-allowed; }
+`;
+
+const EmptyWrap = styled.div`
+  padding: 3rem 1.25rem;
+  text-align: center;
+`;
+
+const EmptyIconBox = styled.div`
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  background: var(--app-surface-2);
+  color: var(--app-text-3);
+`;
+
+const EmptyTitle = styled.p`
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--app-text-1);
+`;
+
+const EmptySubtitle = styled.p`
+  font-size: 13px;
+  margin-bottom: 1rem;
+  color: var(--app-text-2);
+`;
+
+const ClearFiltersBtn = styled.button`
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--app-surface);
+  border: 0.5px solid var(--app-border-md);
+  color: var(--app-text-1);
+  cursor: pointer;
+  transition: background 0.15s;
+  &:hover { background: var(--app-surface-2); }
+`;
+
 // ── Sub-components ───────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
   const m = STATUS_META[status] ?? { label: status, bg: "var(--app-surface-2)", color: "var(--app-text-2)" };
-  return (
-    <span
-      className="inline-flex items-center px-[9px] py-[3px] rounded-[8px] text-[11px] font-medium whitespace-nowrap"
-      style={{ background: m.bg, color: m.color }}
-    >
-      {m.label}
-    </span>
-  );
+  return <BadgeSpan $bg={m.bg} $color={m.color}>{m.label}</BadgeSpan>;
 }
 
 function ContractCell({ contracts }: { contracts: { id: string; status: string }[] }) {
   if (!contracts.length) return <span style={{ color: "var(--app-text-3)" }}>—</span>;
   const m = CONTRACT_META[contracts[0].status] ?? { label: contracts[0].status, bg: "var(--app-surface-2)", color: "var(--app-text-3)" };
-  return (
-    <span
-      className="inline-flex items-center px-[9px] py-[3px] rounded-[8px] text-[11px] font-medium whitespace-nowrap"
-      style={{ background: m.bg, color: m.color }}
-    >
-      {m.label}
-    </span>
-  );
+  return <BadgeSpan $bg={m.bg} $color={m.color}>{m.label}</BadgeSpan>;
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
@@ -91,20 +454,14 @@ export default function ReservationsClient({ reservations }: { reservations: Res
   const router = useRouter();
   const now    = useMemo(() => new Date(), []);
 
-  // ── Filter state ───────────────────────────────────────────────────────────
-  const [search,    setSearch]    = useState("");
-  const [propFilter,setPropFilter]= useState("");
-  const [srcFilter, setSrcFilter] = useState("");
-  const [pill,      setPill]      = useState("");
+  const [search,     setSearch]     = useState("");
+  const [propFilter, setPropFilter] = useState("");
+  const [srcFilter,  setSrcFilter]  = useState("");
+  const [pill,       setPill]       = useState("");
+  const [sortCol,    setSortCol]    = useState<SortCol>("checkIn");
+  const [sortAsc,    setSortAsc]    = useState(false);
+  const [page,       setPage]       = useState(1);
 
-  // ── Sort state ─────────────────────────────────────────────────────────────
-  const [sortCol, setSortCol] = useState<SortCol>("checkIn");
-  const [sortAsc, setSortAsc] = useState(false);
-
-  // ── Pagination ─────────────────────────────────────────────────────────────
-  const [page, setPage] = useState(1);
-
-  // ── Derived dropdown options ───────────────────────────────────────────────
   const propOptions = useMemo(
     () => [...new Set(reservations.map((r) => r.property.name))].sort(),
     [reservations]
@@ -114,7 +471,6 @@ export default function ReservationsClient({ reservations }: { reservations: Res
     [reservations]
   );
 
-  // ── Stats ──────────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
     const mon = now.getMonth(), yr = now.getFullYear();
     return {
@@ -130,20 +486,17 @@ export default function ReservationsClient({ reservations }: { reservations: Res
     };
   }, [reservations, now]);
 
-  // ── Pill counts (always from full list) ────────────────────────────────────
   const pillCounts = useMemo(() => ({
-    "":               reservations.length,
-    pending:          reservations.filter((r) => r.status === "pending").length,
-    guest_submitted:  reservations.filter((r) => r.status === "guest_submitted").length,
-    _awaiting:        reservations.filter(
+    "":              reservations.length,
+    pending:         reservations.filter((r) => r.status === "pending").length,
+    guest_submitted: reservations.filter((r) => r.status === "guest_submitted").length,
+    _awaiting:       reservations.filter(
       (r) => r.contracts.length > 0 && r.contracts[0].status !== "signed"
     ).length,
   }), [reservations]);
 
-  // ── Filtered + sorted data ─────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let data = reservations;
-
     if (search) {
       const q = search.toLowerCase();
       data = data.filter(
@@ -154,13 +507,11 @@ export default function ReservationsClient({ reservations }: { reservations: Res
     }
     if (propFilter) data = data.filter((r) => r.property.name === propFilter);
     if (srcFilter)  data = data.filter((r) => r.source === srcFilter);
-
     if (pill === "_awaiting") {
       data = data.filter((r) => r.contracts.length > 0 && r.contracts[0].status !== "signed");
     } else if (pill) {
       data = data.filter((r) => r.status === pill);
     }
-
     return [...data].sort((a, b) => {
       let av = "", bv = "";
       if (sortCol === "property") { av = a.property.name;          bv = b.property.name; }
@@ -171,11 +522,9 @@ export default function ReservationsClient({ reservations }: { reservations: Res
     });
   }, [reservations, search, propFilter, srcFilter, pill, sortCol, sortAsc]);
 
-  // ── Pagination ─────────────────────────────────────────────────────────────
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
   function handleSort(col: SortCol) {
     if (sortCol === col) setSortAsc((a) => !a);
     else { setSortCol(col); setSortAsc(true); }
@@ -188,221 +537,140 @@ export default function ReservationsClient({ reservations }: { reservations: Res
     setSearch(""); setPropFilter(""); setSrcFilter(""); setPill(""); setPage(1);
   }
 
-  // ── Sort arrow ─────────────────────────────────────────────────────────────
   function Arrow({ col }: { col: SortCol }) {
     if (sortCol !== col) return <span style={{ marginLeft: 3, opacity: 0.3 }}>↓</span>;
     return <span style={{ marginLeft: 3, color: "var(--app-blue)" }}>{sortAsc ? "↑" : "↓"}</span>;
   }
 
-  // ── Shared input style ─────────────────────────────────────────────────────
-  const inp: React.CSSProperties = {
-    background: "var(--app-surface-2)",
-    border:     "0.5px solid var(--app-border-md)",
-    color:      "var(--app-text-1)",
-    borderRadius: 8,
-    fontSize:   13,
-    padding:    "7px 10px",
-    outline:    "none",
-  };
-
-  // ── Empty state ────────────────────────────────────────────────────────────
   const emptyState = (
-    <div className="py-12 text-center px-5">
-      <div
-        className="w-11 h-11 rounded-[12px] flex items-center justify-center mx-auto mb-4"
-        style={{ background: "var(--app-surface-2)" }}
-      >
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true" style={{ color: "var(--app-text-3)" }}>
+    <EmptyWrap>
+      <EmptyIconBox>
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
           <rect x="3" y="3" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.3" opacity="0.4"/>
           <path d="M7 11h8M7 7.5h5M7 14.5h3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" opacity="0.4"/>
         </svg>
-      </div>
-      <p className="text-[14px] font-medium mb-1.5" style={{ color: "var(--app-text-1)" }}>No reservations found</p>
-      <p className="text-[13px] mb-4"              style={{ color: "var(--app-text-2)" }}>Try adjusting your search or filters</p>
-      <button
-        onClick={resetFilters}
-        className="px-[14px] py-[7px] rounded-[8px] text-[13px] transition"
-        style={{ background: "var(--app-surface)", border: "0.5px solid var(--app-border-md)", color: "var(--app-text-1)" }}
-      >
-        Clear filters
-      </button>
-    </div>
+      </EmptyIconBox>
+      <EmptyTitle>No reservations found</EmptyTitle>
+      <EmptySubtitle>Try adjusting your search or filters</EmptySubtitle>
+      <ClearFiltersBtn onClick={resetFilters}>Clear filters</ClearFiltersBtn>
+    </EmptyWrap>
   );
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-
   return (
-    <div className="max-w-[1100px] mx-auto px-4 sm:px-8 py-7">
+    <PageWrap>
 
       {/* Page header */}
-      <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
+      <PageHeaderRow>
         <div>
-          <h1 className="text-[20px] font-medium" style={{ color: "var(--app-text-1)" }}>Reservations</h1>
-          <p className="text-[12px] mt-0.5" style={{ color: "var(--app-text-3)" }}>
+          <PageTitle>Reservations</PageTitle>
+          <PageSubtitle>
             All properties · {now.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}
-          </p>
+          </PageSubtitle>
         </div>
-        <Link
-          href="/reservations/new"
-          className="px-[14px] py-[7px] rounded-[8px] text-[13px] font-medium transition"
-          style={{ background: "var(--app-blue)", color: "#ffffff" }}
-        >
-          + New reservation
-        </Link>
-      </div>
+        <PrimaryLink href="/reservations/new">+ New reservation</PrimaryLink>
+      </PageHeaderRow>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        {[
-          {
-            label: "Total",
-            value: stats.total,
-            sub: "All time",
-            valueColor: undefined,
-          },
-          {
-            label: "This month",
-            value: stats.thisMonth,
-            sub: now.toLocaleDateString("en-GB", { month: "short", year: "numeric" }),
-            valueColor: undefined,
-          },
-          {
-            label: "Awaiting signature",
-            value: stats.awaitingSignature,
-            sub: "Contract pending",
-            valueColor: stats.awaitingSignature > 0 ? "var(--app-amber-text)" : undefined,
-          },
-          {
-            label: "Pending submission",
-            value: stats.pendingSubmission,
-            sub: "Form not filled",
-            valueColor: stats.pendingSubmission > 0 ? "var(--app-red-text)" : undefined,
-          },
-        ].map(({ label, value, sub, valueColor }) => (
-          <div
-            key={label}
-            className="rounded-[8px] px-4 py-3.5"
-            style={{ background: "var(--app-surface-2)" }}
-          >
-            <p className="text-[11px] mb-1.5" style={{ color: "var(--app-text-2)" }}>{label}</p>
-            <p
-              className="text-[20px] font-medium leading-none mb-1"
-              style={{ color: valueColor ?? "var(--app-text-1)" }}
-            >
-              {value}
-            </p>
-            <p className="text-[11px]" style={{ color: "var(--app-text-3)" }}>{sub}</p>
-          </div>
-        ))}
-      </div>
+      <StatsGrid>
+        <StatCard>
+          <StatLabel>Total</StatLabel>
+          <StatValue>{stats.total}</StatValue>
+          <StatSub>All time</StatSub>
+        </StatCard>
+        <StatCard>
+          <StatLabel>This month</StatLabel>
+          <StatValue>{stats.thisMonth}</StatValue>
+          <StatSub>{now.toLocaleDateString("en-GB", { month: "short", year: "numeric" })}</StatSub>
+        </StatCard>
+        <StatCard>
+          <StatLabel>Awaiting signature</StatLabel>
+          <StatValue $amber={stats.awaitingSignature > 0}>{stats.awaitingSignature}</StatValue>
+          <StatSub>Contract pending</StatSub>
+        </StatCard>
+        <StatCard>
+          <StatLabel>Pending submission</StatLabel>
+          <StatValue $red={stats.pendingSubmission > 0}>{stats.pendingSubmission}</StatValue>
+          <StatSub>Form not filled</StatSub>
+        </StatCard>
+      </StatsGrid>
 
       {/* Main section */}
-      <div
-        className="rounded-[12px] overflow-hidden"
-        style={{ background: "var(--app-surface)", border: "0.5px solid var(--app-border)" }}
-      >
+      <SectionCard>
 
         {/* Toolbar */}
-        <div
-          className="flex items-center gap-2.5 px-5 py-3.5 flex-wrap"
-          style={{ borderBottom: "0.5px solid var(--app-border)" }}
-        >
-          {/* Search */}
-          <div className="relative flex-1" style={{ minWidth: 160 }}>
-            <svg
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-              width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"
-              style={{ color: "var(--app-text-3)" }}
-            >
+        <Toolbar>
+          <SearchWrap>
+            <SearchIconSvg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
               <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.2"/>
               <path d="M9.5 9.5L12 12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-            </svg>
-            <input
+            </SearchIconSvg>
+            <SearchInput
               type="text"
               value={search}
               onChange={(e) => applyFilter(() => setSearch(e.target.value))}
               placeholder="Search guest or property…"
               aria-label="Search"
-              className="w-full"
-              style={{ ...inp, padding: "7px 10px 7px 30px" }}
             />
-          </div>
+          </SearchWrap>
 
-          {/* Property dropdown */}
-          <select
+          <FilterSelect
             value={propFilter}
             onChange={(e) => applyFilter(() => setPropFilter(e.target.value))}
             aria-label="Property"
-            style={inp}
           >
             <option value="">All properties</option>
             {propOptions.map((p) => <option key={p} value={p}>{p}</option>)}
-          </select>
+          </FilterSelect>
 
-          {/* Source dropdown */}
-          <select
+          <FilterSelect
             value={srcFilter}
             onChange={(e) => applyFilter(() => setSrcFilter(e.target.value))}
             aria-label="Source"
-            style={inp}
           >
             <option value="">All sources</option>
             {srcOptions.map((s) => (
               <option key={s} value={s}>{SOURCE_LABEL[s] ?? s}</option>
             ))}
-          </select>
-        </div>
+          </FilterSelect>
+        </Toolbar>
 
         {/* Filter pills */}
-        <div
-          className="flex items-center gap-1.5 px-5 py-3 flex-wrap"
-          style={{ borderBottom: "0.5px solid var(--app-border)" }}
-        >
+        <PillRow>
           {PILLS.map(({ value, label }) => {
             const isActive = pill === value;
             const count    = pillCounts[value as keyof typeof pillCounts] ?? 0;
             return (
-              <button
-                key={value}
-                onClick={() => applyFilter(() => setPill(value))}
-                className="px-3 py-1 rounded-full text-[12px] transition whitespace-nowrap"
-                style={{
-                  background:  isActive ? "var(--app-blue)"      : "var(--app-surface)",
-                  color:       isActive ? "#ffffff"               : "var(--app-text-2)",
-                  border:      isActive ? "0.5px solid var(--app-blue)" : "0.5px solid var(--app-border-md)",
-                }}
-              >
-                {label}
-                <span style={{ fontSize: 10, opacity: 0.75, marginLeft: 3 }}>{count}</span>
-              </button>
+              <Pill key={value} $active={isActive} onClick={() => applyFilter(() => setPill(value))}>
+                {label}<PillCount>{count}</PillCount>
+              </Pill>
             );
           })}
-        </div>
+        </PillRow>
 
-        {/* ── Desktop table ── */}
-        <div className="hidden sm:block overflow-x-auto">
+        {/* Desktop table */}
+        <DesktopSection>
           {paginated.length === 0 ? emptyState : (
-            <table className="w-full border-collapse" style={{ tableLayout: "fixed", minWidth: 600 }}>
-              <thead>
-                <tr style={{ background: "var(--app-surface-2)", borderBottom: "0.5px solid var(--app-border)" }}>
-                  <Th w="16%" sort onClick={() => handleSort("guest")}>
+            <TableEl>
+              <THeadEl>
+                <tr>
+                  <ThEl $w="16%" $sort onClick={() => handleSort("guest")}>
                     Guest <Arrow col="guest" />
-                  </Th>
-                  <Th w="22%" sort onClick={() => handleSort("property")}>
+                  </ThEl>
+                  <ThEl $w="22%" $sort onClick={() => handleSort("property")}>
                     Property <Arrow col="property" />
-                  </Th>
-                  <Th w="12%" sort onClick={() => handleSort("checkIn")}>
+                  </ThEl>
+                  <ThEl $w="12%" $sort onClick={() => handleSort("checkIn")}>
                     Check-in <Arrow col="checkIn" />
-                  </Th>
-                  <Th w="12%" sort className="max-[960px]:hidden" onClick={() => handleSort("checkOut")}>
+                  </ThEl>
+                  <ThEl $w="12%" $sort $hideBelow={960} onClick={() => handleSort("checkOut")}>
                     Check-out <Arrow col="checkOut" />
-                  </Th>
-                  <Th w="11%" className="max-[800px]:hidden">Source</Th>
-                  <Th w="16%">Status</Th>
-                  <Th w="9%">Contract</Th>
-                  <Th w="8%" right> </Th>
+                  </ThEl>
+                  <ThEl $w="11%" $hideBelow={800}>Source</ThEl>
+                  <ThEl $w="16%">Status</ThEl>
+                  <ThEl $w="9%">Contract</ThEl>
+                  <ThEl $w="8%" $right> </ThEl>
                 </tr>
-              </thead>
+              </THeadEl>
               <tbody>
                 {paginated.map((r, idx) => (
                   <TableRow
@@ -413,12 +681,12 @@ export default function ReservationsClient({ reservations }: { reservations: Res
                   />
                 ))}
               </tbody>
-            </table>
+            </TableEl>
           )}
-        </div>
+        </DesktopSection>
 
-        {/* ── Mobile cards ── */}
-        <div className="block sm:hidden">
+        {/* Mobile cards */}
+        <MobileSection>
           {paginated.length === 0 ? emptyState : (
             paginated.map((r, idx) => (
               <MobileCard
@@ -429,153 +697,67 @@ export default function ReservationsClient({ reservations }: { reservations: Res
               />
             ))
           )}
-        </div>
+        </MobileSection>
 
         {/* Footer */}
         {filtered.length > 0 && (
-          <div
-            className="flex items-center justify-between px-5 py-3.5 flex-wrap gap-2"
-            style={{ borderTop: "0.5px solid var(--app-border)" }}
-          >
-            <span className="text-[12px]" style={{ color: "var(--app-text-3)" }}>
+          <SectionFooter>
+            <FooterCount>
               Showing {paginated.length} of {filtered.length} reservation{filtered.length !== 1 ? "s" : ""}
-            </span>
-
+            </FooterCount>
             {totalPages > 1 && (
-              <div className="flex items-center gap-1">
-                <PageBtn
-                  aria-label="Previous"
-                  disabled={page === 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  ‹
-                </PageBtn>
+              <PaginationRow>
+                <PageBtnEl aria-label="Previous" disabled={page === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>‹</PageBtnEl>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <PageBtn key={p} active={p === page} onClick={() => setPage(p)}>
-                    {p}
-                  </PageBtn>
+                  <PageBtnEl key={p} $active={p === page} onClick={() => setPage(p)}>{p}</PageBtnEl>
                 ))}
-                <PageBtn
-                  aria-label="Next"
-                  disabled={page === totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  ›
-                </PageBtn>
-              </div>
+                <PageBtnEl aria-label="Next" disabled={page === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>›</PageBtnEl>
+              </PaginationRow>
             )}
-          </div>
+          </SectionFooter>
         )}
-      </div>
-    </div>
+      </SectionCard>
+    </PageWrap>
   );
 }
 
 // ── Table sub-components ─────────────────────────────────────────────────────
 
-function Th({
-  children, w, sort, right, className = "", onClick,
-}: {
-  children: React.ReactNode;
-  w?: string;
-  sort?: boolean;
-  right?: boolean;
-  className?: string;
-  onClick?: () => void;
-}) {
-  return (
-    <th
-      onClick={onClick}
-      className={`px-2.5 py-2.5 text-[11px] font-medium uppercase tracking-[.04em] ${right ? "text-right" : "text-left"} ${sort ? "cursor-pointer select-none hover:opacity-75" : ""} ${className}`}
-      style={{ color: "var(--app-text-2)", width: w }}
-    >
-      {children}
-    </th>
-  );
-}
-
 function TableRow({
   r, isLast, onClick,
 }: {
-  r: {
-    id: string; status: string; source: string;
-    checkInDate: string; checkOutDate: string;
-    property: { name: string };
-    guests: { fullName: string }[];
-    contracts: { id: string; status: string }[];
-  };
+  r: ReservationRow;
   isLast: boolean;
   onClick: () => void;
 }) {
   return (
     <tr
       onClick={onClick}
-      className="res-table-row cursor-pointer transition"
-      style={{ borderBottom: isLast ? "none" : "0.5px solid var(--app-border)" }}
+      className="res-table-row"
+      style={{
+        cursor: "pointer",
+        borderBottom: isLast ? "none" : "0.5px solid var(--app-border)",
+      }}
     >
-      <td className="px-2.5 py-3">
-        <span
-          className="block text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap"
-          style={{ color: "var(--app-text-1)" }}
-        >
-          {r.guests[0]?.fullName ?? "—"}
-        </span>
-        {r.guests.length > 1 && (
-          <span className="block text-[11px]" style={{ color: "var(--app-text-3)" }}>
-            +{r.guests.length - 1} more
-          </span>
-        )}
-      </td>
-      <td
-        className="px-2.5 py-3 text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap"
-        style={{ color: "var(--app-text-1)" }}
-      >
+      <TdEl>
+        <CellPrimary>{r.guests[0]?.fullName ?? "—"}</CellPrimary>
+        {r.guests.length > 1 && <CellSub>+{r.guests.length - 1} more</CellSub>}
+      </TdEl>
+      <TdEl style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>
         {r.property.name}
-      </td>
-
-      <td
-        className="px-2.5 py-3 text-[13px] whitespace-nowrap"
-        style={{ color: "var(--app-text-1)" }}
-      >
-        {fmtDate(r.checkInDate)}
-      </td>
-
-      <td
-        className="max-[960px]:hidden px-2.5 py-3 text-[13px] whitespace-nowrap"
-        style={{ color: "var(--app-text-1)" }}
-      >
-        {fmtDate(r.checkOutDate)}
-      </td>
-
-      <td
-        className="max-[800px]:hidden px-2.5 py-3 text-[13px]"
-        style={{ color: "var(--app-text-2)" }}
-      >
-        <span
-          className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle flex-shrink-0"
-          style={{ background: "var(--app-blue)" }}
-        />
-        {SOURCE_LABEL[r.source] ?? r.source}
-      </td>
-
-      <td className="px-2.5 py-3">
-        <StatusBadge status={r.status} />
-      </td>
-
-      <td className="px-2.5 py-3">
-        <ContractCell contracts={r.contracts} />
-      </td>
-
-      <td className="px-2.5 py-3 text-right">
-        <Link
-          href={`/reservations/${r.id}`}
-          onClick={(e) => e.stopPropagation()}
-          className="text-[12px] font-medium hover:underline whitespace-nowrap"
-          style={{ color: "var(--app-blue)" }}
-        >
+      </TdEl>
+      <TdEl style={{ whiteSpace: "nowrap" }}>{fmtDate(r.checkInDate)}</TdEl>
+      <TdEl $hideBelow={960} style={{ whiteSpace: "nowrap" }}>{fmtDate(r.checkOutDate)}</TdEl>
+      <TdEl $hideBelow={800} style={{ color: "var(--app-text-2)" }}>
+        <SourceDot />{SOURCE_LABEL[r.source] ?? r.source}
+      </TdEl>
+      <TdEl><StatusBadge status={r.status} /></TdEl>
+      <TdEl><ContractCell contracts={r.contracts} /></TdEl>
+      <TdEl style={{ textAlign: "right" }}>
+        <ManageLink href={`/reservations/${r.id}`} onClick={(e) => e.stopPropagation()}>
           Manage →
-        </Link>
-      </td>
+        </ManageLink>
+      </TdEl>
     </tr>
   );
 }
@@ -583,86 +765,34 @@ function TableRow({
 function MobileCard({
   r, isLast, onClick,
 }: {
-  r: {
-    id: string; status: string; source: string;
-    checkInDate: string; checkOutDate: string;
-    property: { name: string };
-    guests: { fullName: string }[];
-    contracts: { id: string; status: string }[];
-  };
+  r: ReservationRow;
   isLast: boolean;
   onClick: () => void;
 }) {
   return (
-    <div
-      onClick={onClick}
-      className="res-mobile-card px-5 py-4 cursor-pointer transition"
-      style={{ borderBottom: isLast ? "none" : "0.5px solid var(--app-border)" }}
-    >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="min-w-0">
-          <p
-            className="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap"
-            style={{ color: "var(--app-text-1)" }}
-          >
-            {r.property.name}
-          </p>
-          <p className="text-[12px] mt-0.5" style={{ color: "var(--app-text-2)" }}>
+    <MobileCardWrap onClick={onClick} $last={isLast} className="res-mobile-card">
+      <MobileCardTop>
+        <MobileCardInfo>
+          <MobileCardName>{r.property.name}</MobileCardName>
+          <MobileCardGuest>
             {r.guests[0]?.fullName ?? "—"}
             {r.guests.length > 1 ? ` · +${r.guests.length - 1} more` : ""}
-          </p>
-        </div>
-        <Link
-          href={`/reservations/${r.id}`}
-          onClick={(e) => e.stopPropagation()}
-          className="text-[12px] font-medium whitespace-nowrap hover:underline flex-shrink-0"
-          style={{ color: "var(--app-blue)" }}
-        >
+          </MobileCardGuest>
+        </MobileCardInfo>
+        <ManageLink href={`/reservations/${r.id}`} onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
           Manage →
-        </Link>
-      </div>
-
-      <div className="flex gap-1.5 flex-wrap mb-2">
+        </ManageLink>
+      </MobileCardTop>
+      <MobileCardBadges>
         <StatusBadge status={r.status} />
         <ContractCell contracts={r.contracts} />
-      </div>
-
-      <div className="flex items-center justify-between text-[12px]" style={{ color: "var(--app-text-3)" }}>
+      </MobileCardBadges>
+      <MobileCardFooter>
         <span>{fmtDate(r.checkInDate)} → {fmtDate(r.checkOutDate)}</span>
-        <span>
-          <span
-            className="inline-block w-1.5 h-1.5 rounded-full mr-1 align-middle"
-            style={{ background: "var(--app-blue)" }}
-          />
-          {SOURCE_LABEL[r.source] ?? r.source}
-        </span>
-      </div>
-    </div>
+        <span><SourceDot />{SOURCE_LABEL[r.source] ?? r.source}</span>
+      </MobileCardFooter>
+    </MobileCardWrap>
   );
 }
 
-function PageBtn({
-  children, active, disabled, onClick, ...rest
-}: {
-  children: React.ReactNode;
-  active?: boolean;
-  disabled?: boolean;
-  onClick?: () => void;
-  [key: string]: unknown;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[12px] transition disabled:opacity-30"
-      style={{
-        background:  active ? "var(--app-blue)"       : "var(--app-surface)",
-        color:       active ? "#ffffff"                : "var(--app-text-2)",
-        border:      active ? "0.5px solid var(--app-blue)" : "0.5px solid var(--app-border-md)",
-      }}
-      {...rest}
-    >
-      {children}
-    </button>
-  );
-}
+
